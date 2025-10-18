@@ -1,0 +1,45 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ==========================================================
+    // 1. COLECCIÓN 'trains' (CATÁLOGO DE INVENTARIO)
+    // ==========================================================
+    // REQUISITO: SOLO usuarios logueados pueden ver el catálogo (read).
+    // NOTA: Nadie puede modificar el stock manualmente (write/update).
+    match /trains/{trainId} {
+      allow read: if request.auth != null;
+      // Solo las Cloud Functions podrán modificar el stock (por seguridad).
+      allow write: if false; 
+    }
+    
+    // ==========================================================
+    // 2. COLECCIÓN 'users' (PERFILES DE CLIENTES)
+    // ==========================================================
+    // REQUISITO: El usuario SOLO puede leer/escribir/actualizar su propio documento.
+    // Esto vincula Auth con Firestore usando el UID.
+    match /users/{userId} {
+      allow read, update: if request.auth != null && request.auth.uid == userId;
+      // Solo permitimos crear si el ID del documento es igual al UID del usuario.
+      allow create: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // ==========================================================
+    // 3. OTRAS COLECCIONES (Ejemplo: ÓRDENES)
+    // ==========================================================
+    // Esto lo puedes agregar después. Solo el usuario dueño puede verlo.
+    match /orders/{orderId} {
+      allow read, create: if request.auth != null && request.auth.uid == resource.data.userId;
+      // 'resource.data.userId' asume que el documento de la orden contiene el UID del comprador.
+    }
+    
+    // ==========================================================
+    // 4. REGLA DE FALLBACK (SEGURIDAD POR DEFECTO)
+    // ==========================================================
+    // Deniega el acceso por defecto a cualquier otra colección no definida arriba.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

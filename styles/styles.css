@@ -1,0 +1,450 @@
+/* -------------------------------------------------------------------------- */
+/* 0. GLOBAL RESET & BASE                               */
+/* -------------------------------------------------------------------------- */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+
+:root {
+    /* Colores del Tema Oscuro (Defecto) */
+    --color-background-primary: #121212;
+    --color-background-secondary: #1e1e1e;
+    --color-text-primary: #e0e0e0;
+    --color-text-secondary: #b0b0b0;
+    --color-accent: #ff6e40; /* Naranja/Cobre para acentos */
+    --color-success: #4caf50;
+    --color-error: #f44336;
+    --color-shadow: rgba(0, 0, 0, 0.5);
+
+    /* Estilos Generales */
+    --border-radius: 8px;
+    --spacing-unit: 1rem;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: var(--color-background-primary);
+    color: var(--color-text-primary);
+    line-height: 1.6;
+    transition: background-color 0.3s, color 0.3s;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: var(--spacing-unit);
+}
+
+/* -------------------------------------------------------------------------- */
+/* 1. HEADER & NAVIGATION                             */
+/* -------------------------------------------------------------------------- */
+#app-header {
+    background-color: var(--color-background-secondary);
+    box-shadow: 0 4px 6px var(--color-shadow);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 2rem;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+.header-content {
+    display: flex;
+    align-items: center;
+}
+
+.logo {
+    color: var(--color-accent);
+    font-size: 1.8rem;
+    font-weight: 700;
+    margin-right: 2rem;
+}
+
+/* Enlaces de Navegación */
+nav a {
+    color: var(--color-text-secondary);
+    text-decoration: none;
+    font-weight: 600;
+    padding: 0.5rem 1rem;
+    margin: 0 0.5rem;
+    border-radius: var(--border-radius);
+    transition: color 0.2s, background-color 0.2s;
+}
+
+nav a:hover {
+    color: var(--color-text-primary);
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+nav a.active {
+    color: var(--color-accent);
+    border-bottom: 2px solid var(--color-accent);
+    background-color: transparent;
+}
+
+.user-controls {
+    display: flex;
+    align-items: center;
+}
+
+.user-welcome {
+    margin-right: 1rem;
+    font-weight: 400;
+    color: var(--color-text-primary);
+}
+
+
+/* -------------------------------------------------------------------------- */
+/* 2. BOTONES GENERALES                             */
+/* -------------------------------------------------------------------------- */
+.btn {
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    font-weight: 600;
+    transition: transform 0.1s, box-shadow 0.2s, background-color 0.2s;
+    font-size: 1rem;
+}
+
+.btn-primary {
+    background-color: var(--color-accent);
+    color: var(--color-background-primary);
+    box-shadow: 0 4px 10px rgba(255, 110, 64, 0.4);
+}
+
+.btn-primary:hover {
+    background-color: #ff8563; /* Tono más claro */
+    transform: translateY(-2px);
+    box-shadow: 0 6px 15px rgba(255, 110, 64, 0.6);
+}
+
+.btn-secondary {
+    background-color: var(--color-background-primary);
+    color: var(--color-accent);
+    border: 1px solid var(--color-accent);
+}
+
+.btn-secondary:hover {
+    background-color: var(--color-accent);
+    color: var(--color-background-primary);
+}
+
+.btn-link {
+    background: none;
+    color: var(--color-accent);
+    padding: 0.5rem;
+    margin-top: 1rem;
+}
+
+.btn-google {
+    background-color: #4285f4; /* Azul de Google */
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    margin-top: 1rem;
+}
+
+.btn-google .google-logo {
+    width: 20px;
+    height: 20px;
+    background-color: white;
+    padding: 2px;
+    border-radius: 2px;
+    margin-right: 10px;
+}
+
+/* Deshabilitado */
+.btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+/* -------------------------------------------------------------------------- */
+/* 3. VISTAS Y LAYOUT                             */
+/* -------------------------------------------------------------------------- */
+
+.view {
+    padding: 2rem 0;
+}
+
+.grid-layout {
+    display: grid;
+    /* Diseño responsivo: 1 columna en móvil, 2 en tablet, 3 o 4 en escritorio */
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 2rem;
+    padding-top: 1.5rem;
+}
+
+/* -------------------------------------------------------------------------- */
+/* 4. TARJETA DE TREN (CATÁLOGO)                     */
+/* -------------------------------------------------------------------------- */
+
+.train-card {
+    background-color: var(--color-background-secondary);
+    border-radius: var(--border-radius);
+    overflow: hidden;
+    box-shadow: 0 6px 15px var(--color-shadow);
+    transition: transform 0.3s, box-shadow 0.3s;
+    display: flex;
+    flex-direction: column;
+}
+
+.train-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 25px rgba(255, 110, 64, 0.3);
+}
+
+.card-image-container {
+    height: 200px;
+    background-color: #0d0d0d; /* Fondo muy oscuro para placeholders */
+    position: relative;
+    overflow: hidden;
+}
+
+.card-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: 0.85;
+    transition: opacity 0.3s;
+}
+
+.train-card:hover .card-image {
+    opacity: 1;
+}
+
+.card-content {
+    padding: 1.5rem;
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.card-title {
+    font-size: 1.4rem;
+    color: var(--color-text-primary);
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+}
+
+.card-info {
+    color: var(--color-text-secondary);
+    font-size: 0.9rem;
+    margin-bottom: 1rem;
+}
+
+.card-price {
+    font-size: 1.5rem;
+    color: var(--color-accent);
+    font-weight: 700;
+    margin-top: auto; /* Empuja el precio y el stock al fondo */
+    padding-top: 0.5rem;
+}
+
+.card-stock {
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin-top: 0.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #333;
+}
+
+.stock-available {
+    color: var(--color-success);
+}
+
+.stock-low {
+    color: var(--color-error);
+}
+
+.stock-unavailable {
+    color: var(--color-text-secondary);
+}
+
+/* Controles de la tarjeta */
+.card-actions {
+    padding-top: 1rem;
+}
+
+.buy-button {
+    width: 100%;
+}
+
+
+/* -------------------------------------------------------------------------- */
+/* 5. MODALES Y AUTENTICACIÓN                        */
+/* -------------------------------------------------------------------------- */
+
+.modal-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.8);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.modal-content {
+    background-color: var(--color-background-secondary);
+    padding: 2rem;
+    border-radius: var(--border-radius);
+    max-width: 400px;
+    width: 90%;
+    box-shadow: 0 10px 30px var(--color-shadow);
+    position: relative;
+}
+
+.auth-card h3 {
+    text-align: center;
+    color: var(--color-accent);
+    margin-bottom: 1.5rem;
+    font-size: 1.75rem;
+}
+
+.auth-form input[type="email"],
+.auth-form input[type="password"],
+.auth-form input[type="text"],
+.auth-form textarea {
+    width: 100%;
+    padding: 0.75rem;
+    margin-bottom: 1rem;
+    border: 1px solid #333;
+    border-radius: var(--border-radius);
+    background-color: var(--color-background-primary);
+    color: var(--color-text-primary);
+    font-size: 1rem;
+    transition: border-color 0.2s;
+}
+
+.auth-form input:focus,
+.auth-form textarea:focus {
+    border-color: var(--color-accent);
+    outline: none;
+}
+
+.separator {
+    text-align: center;
+    margin: 1rem 0;
+    color: var(--color-text-secondary);
+    position: relative;
+}
+.separator::before, .separator::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    width: 40%;
+    height: 1px;
+    background: #333;
+}
+.separator::before { left: 0; }
+.separator::after { right: 0; }
+
+.close-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: none;
+    border: none;
+    color: var(--color-text-secondary);
+    font-size: 1.5rem;
+    cursor: pointer;
+    transition: color 0.2s;
+}
+
+.close-btn:hover {
+    color: var(--color-accent);
+}
+
+/* Mensajes de Estado */
+.error-msg, .success-msg {
+    padding: 0.75rem;
+    margin-bottom: 1rem;
+    border-radius: var(--border-radius);
+    font-weight: 600;
+}
+.error-msg {
+    background-color: rgba(244, 67, 54, 0.1); /* Rojo tenue */
+    color: var(--color-error);
+}
+.success-msg {
+    background-color: rgba(76, 175, 80, 0.1); /* Verde tenue */
+    color: var(--color-success);
+}
+
+/* -------------------------------------------------------------------------- */
+/* 6. UTILIDADES & RESPONSIVIDAD                    */
+/* -------------------------------------------------------------------------- */
+
+.hidden {
+    display: none !important;
+}
+
+/* Para manejar el cambio de vistas en el SPA */
+.view:not(.active) {
+    display: none;
+}
+
+/* ------------------------------------------- */
+/* MEDIA QUERIES (Móvil)         */
+/* ------------------------------------------- */
+@media (max-width: 768px) {
+    #app-header {
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 1rem;
+    }
+
+    .header-content {
+        margin-bottom: 0.75rem;
+        width: 100%;
+        justify-content: space-between;
+    }
+
+    .user-controls {
+        width: 100%;
+        justify-content: space-between;
+    }
+
+    .logo {
+        margin-right: 1rem;
+        font-size: 1.5rem;
+    }
+
+    nav {
+        display: flex;
+        width: 100%;
+        justify-content: space-around;
+        margin-top: 0.5rem;
+    }
+    
+    nav a {
+        flex-grow: 1;
+        text-align: center;
+        margin: 0 0.2rem;
+        padding: 0.5rem;
+    }
+
+    .container {
+        padding: 0.5rem;
+    }
+
+    .modal-content {
+        width: 95%;
+        margin: 1rem;
+    }
+}
