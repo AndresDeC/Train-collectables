@@ -9,7 +9,15 @@ const closeModalButton = document.getElementById('close-product-modal');
 // La instancia de Firestore (db) y Auth (auth) se obtienen de app/auth.js
 let db;
 let auth;
-const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+
+// ** IMPORTANTE: PEGA AQUÍ TU ID DE PROYECTO DE FIREBASE **
+// Si estás usando GitHub Pages, esta variable es NECESARIA.
+// Sustituye 'TU_PROJECT_ID_AQUI_EJ_mi-proyecto-12345' por el ID real de tu proyecto de Firebase.
+const YOUR_FIREBASE_PROJECT_ID = 'extension-84b64'; 
+
+// La variable 'appId' obtiene el ID del entorno (si existe) o usa el ID que pegaste
+const appId = typeof __app_id !== 'undefined' ? __app_id : YOUR_FIREBASE_PROJECT_ID;
+
 
 /**
  * Agrupa los trenes por su campo 'Tipo'.
@@ -152,7 +160,7 @@ function renderCatalog(groupedTrains) {
 
 
 /**
- * Lee la colección 'trains' de Firestore y pinta el catálogo.
+ * Lee la colección 'Trenes' de Firestore y pinta el catálogo.
  * Esta función usa onSnapshot para escuchar cambios en tiempo real.
  */
 async function initializeTrainCatalog() {
@@ -167,7 +175,9 @@ async function initializeTrainCatalog() {
     }
 
     try {
-        const trainsCollectionRef = collection(db, `artifacts/${appId}/public/data/trains`);
+        // La ruta usa el appId (del entorno o el pegado manualmente)
+        // CORRECCIÓN APLICADA: Aseguramos que use la variable ${appId}
+        const trainsCollectionRef = collection(db, `artifacts/$extension-84b64/public/data/Trenes`);
         
         // Usar onSnapshot para obtener los datos en tiempo real
         onSnapshot(trainsCollectionRef, (snapshot) => {
@@ -188,7 +198,7 @@ async function initializeTrainCatalog() {
 
         }, (error) => {
             console.error("Error en onSnapshot del catálogo:", error);
-            catalogContainer.innerHTML = '<p class="text-red-500">Error al cargar el catálogo. Por favor, revisa la consola y las reglas de seguridad de Firestore.</p>';
+            catalogContainer.innerHTML = `<p class="text-red-500">Error al cargar el catálogo: ${error.message}. Verifica el Project ID y las reglas de seguridad.</p>`;
         });
 
     } catch (error) {
