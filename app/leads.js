@@ -1,8 +1,12 @@
-import { addDoc, collection, getFirestore } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-// La instancia de Firestore (db) y Auth (auth) se obtienen de app/auth.js
-let db;
-let auth;
+// app/leads.js
+// Lógica para capturar leads:
+// 1. Leads Públicos (Landing Page) enviados vía FormSubmit.
+// 2. Leads Protegidos (Catálogo) guardados en Firestore.
+
+// -------------------------------------------------------------------------
+// CONFIGURACIÓN PARA EL FORMULARIO PÚBLICO (LANDING PAGE)
+// -------------------------------------------------------------------------
 
 // Elementos del DOM para el formulario de la Landing Page
 const publicInterestForm = document.getElementById('public-interest-form');
@@ -11,21 +15,20 @@ const publicEmailInput = document.getElementById('public-email-input');
 const publicFormMessage = document.getElementById('public-form-message');
 
 // Configuración de FormSubmit (servicio gratuito de envío de formularios por correo)
-// 🚨 ¡VERIFICA ESTE CORREO! 🚨
+// 🚨 ¡REEMPLAZA ESTE CORREO CON TU EMAIL REAL! 🚨
 const FORMSUBMIT_ENDPOINT = "https://formsubmit.co/adc.030328@gmail.com"; 
 
 /**
  * Muestra un mensaje en el formulario público.
  */
 function displayPublicMessage(msg, isError = false) {
-    if (!publicFormMessage) return;
     publicFormMessage.textContent = msg;
-    publicFormMessage.classList.remove('hidden', 'text-green-600', 'text-red-600');
-    publicFormMessage.classList.add(isError ? 'text-red-600' : 'text-green-600');
+    publicFormMessage.classList.remove('hidden', 'success-msg', 'error-msg');
+    publicFormMessage.classList.add(isError ? 'error-msg' : 'success-msg');
     
     // Ocultar mensaje después de 5 segundos
     setTimeout(() => {
-        if (publicFormMessage) publicFormMessage.classList.add('hidden');
+        publicFormMessage.classList.add('hidden');
     }, 5000);
 }
 
@@ -33,9 +36,9 @@ function displayPublicMessage(msg, isError = false) {
  * -----------------------------------------------------
  * LÓGICA DE LEAD PÚBLICO (LANDING PAGE - Vía FormSubmit)
  * -----------------------------------------------------
- * Inicializa y maneja el envío del formulario público.
+ * Esta función es llamada desde app/auth.js cuando no hay sesión.
  */
-function initPublicInterestForm() {
+export function initPublicInterestForm() {
     if (!publicInterestForm) return;
 
     // 1. Configurar la acción del formulario para usar FormSubmit
@@ -43,6 +46,7 @@ function initPublicInterestForm() {
     publicInterestForm.method = 'POST';
 
     // 2. Añadir campos ocultos requeridos por FormSubmit (para un correo limpio)
+    // El campo _subject personaliza el asunto del correo que recibes
     if (!document.getElementById('formsubmit-subject')) {
         const subjectInput = document.createElement('input');
         subjectInput.type = 'hidden';
@@ -52,7 +56,7 @@ function initPublicInterestForm() {
         publicInterestForm.appendChild(subjectInput);
     }
 
-    // 3. Manejar el envío del formulario con JavaScript
+    // 3. Manejar el envío del formulario con JavaScript para mostrar el mensaje de éxito
     publicInterestForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         
@@ -65,28 +69,25 @@ function initPublicInterestForm() {
             // Se usa Fetch para enviar el formulario en segundo plano (FormSubmit)
             const formData = new FormData(publicInterestForm);
             
+            // Simula el envío directo al endpoint de FormSubmit
             const response = await fetch(FORMSUBMIT_ENDPOINT, {
                 method: 'POST',
                 body: formData,
+                // FormSubmit requiere que no se envíe Content-Type para formularios multipart
             });
             
             if (!response.ok) {
+                 // Si FormSubmit retorna un error
                 throw new Error(`Error en el servicio de correo.`);
             }
 
-            // --- Guardar el Lead en Firestore como respaldo (mejor práctica) ---
-            db = window.db || getFirestore(); 
-            if (db) {
-                // Ruta para leads públicos: artifacts/{appId}/public/data/LeadsPublicos
-                await addDoc(collection(db, `artifacts/${window.appId}/public/data/LeadsPublicos`), {
-                    name: publicNameInput.value.trim(),
-                    email: publicEmailInput.value.trim(),
-                    message: formData.get('message'),
-                    timestamp: new Date(),
-                    source: 'LandingPage'
-                });
-            }
-
+            // Opcional: Guardar el Lead en Firestore como respaldo (mejor práctica)
+            await db.collection("publicLeads").add({
+                name: publicNameInput.value.trim(),
+                email: publicEmailInput.value.trim(),
+                timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                source: 'LandingPage'
+            });
 
             displayPublicMessage(`¡Gracias! Hemos enviado tu solicitud a nuestro equipo.`, false);
             publicInterestForm.reset(); 
@@ -100,70 +101,55 @@ function initPublicInterestForm() {
     });
 }
 
+
 /**
  * -----------------------------------------------------
  * LÓGICA DE LEAD PROTEGIDO (CATÁLOGO - Vía Firestore)
  * -----------------------------------------------------
  * Guarda las solicitudes de usuarios logueados directamente en Firestore.
- * Esta función es llamada desde app/firestore.js cuando se hace clic en "Estoy Interesado"
- * en el modal de un producto.
- * @param {string} modelId - ID del modelo de tren.
- * @param {string} modelName - Nombre del modelo de tren.
+ * NOTA: Esta función es llamada desde app/auth.js cuando hay sesión.
  */
-window.saveProtectedLead = async (modelId, modelName) => {
-    db = window.db || getFirestore();
-    auth = window.auth;
+export function initInterestListeners(user) {
+    // 1. Obtener el contenedor del catálogo para delegación de eventos
+    const catalogContainer = document.getElementById('catalog-container');
+    
+    // Usamos delegación de eventos para capturar clics en todos los botones 'Estoy Interesado'
+    catalogContainer.addEventListener('click', async (e) => {
+        if (e.target.classList.contains('buy-button')) {
+            const button = e.target;
+            const modelId = button.dataset.modelId;
+            const modelName = button.dataset.modelName;
 
-    if (!db || !auth || !auth.currentUser) {
-        // Esto no debería pasar si se llama correctamente desde showProductModal, 
-        // pero es una salvaguarda.
-        window.displayModalMessage("Error: Sesión no activa.", 'error'); 
-        return;
-    }
+            button.disabled = true;
+            button.textContent = 'Guardando...';
 
-    const user = auth.currentUser;
-    // La función displayModalMessage debe existir en app/firestore.js para mostrar el feedback.
-    if (!window.displayModalMessage) {
-        console.error("Función displayModalMessage no definida en app/firestore.js. No se puede mostrar feedback.");
-        return;
-    }
+            try {
+                // 1. Guardar la Solicitud directamente en Firestore
+                await db.collection("userRequests").add({
+                    userId: user.uid,
+                    userName: user.displayName || user.email.split('@')[0],
+                    userEmail: user.email,
+                    modelId: modelId,
+                    modelName: modelName,
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                });
 
+                button.textContent = '¡Solicitado!';
+                
+                // Mensaje en la consola para el administrador: ¡IMPORTANTE!
+                console.log(`Solicitud de ${user.email} guardada en 'userRequests' para ${modelName}`);
 
-    try {
-        const userId = user.uid;
-        // RUTA PRIVADA: artifacts/{appId}/users/{userId}/Solicitudes
-        const requestsCollectionRef = collection(db, `artifacts/${window.appId}/users/${userId}/Solicitudes`);
-
-        await addDoc(requestsCollectionRef, {
-            userId: userId,
-            userName: user.displayName || user.email || 'Usuario Anónimo',
-            userEmail: user.email || 'N/A',
-            modelId: modelId,
-            modelName: modelName,
-            timestamp: new Date(),
-            status: 'Pendiente'
-        });
-
-        window.displayModalMessage(`¡${modelName} solicitado! Revisa la sección "Mi Perfil".`, 'success');
-        
-    } catch (error) {
-        console.error("Error al guardar lead protegido en Firestore:", error);
-        window.displayModalMessage("Error al guardar la solicitud.", 'error');
-    }
-};
-
-// -------------------------------------------------------------------
-// INICIALIZACIÓN
-// -------------------------------------------------------------------
-
-// Hacemos que la función sea global para que app/firestore.js pueda llamarla
-window.initPublicInterestForm = initPublicInterestForm;
-
-// Inicializar el formulario público tan pronto como el DOM esté listo
-window.addEventListener('load', () => {
-    // Definimos window.appId aquí por si leads.js se carga antes que auth.js
-    window.appId = typeof __app_id !== 'undefined' ? __app_id : window.YOUR_FIREBASE_PROJECT_ID || 'default-app-id';
-
-    // Inicializamos el formulario de interés público
-    initPublicInterestForm();
-});
+                // Revertir el estado del botón después de 3 segundos
+                setTimeout(() => {
+                    button.textContent = 'Estoy Interesado';
+                    button.disabled = false;
+                }, 3000); 
+                
+            } catch (error) {
+                console.error("Error al guardar lead protegido en Firestore:", error);
+                button.textContent = 'Error';
+                button.disabled = false; 
+            }
+        }
+    });
+}
