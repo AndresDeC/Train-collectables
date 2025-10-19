@@ -26,7 +26,7 @@ let db;
 let appId;
 
 // --- REFERENCIAS GLOBALES (DOM) ---
-// Las referencias que nos proporcionaste
+// Usamos comprobaciones dentro de las funciones, pero definimos las referencias aquí.
 const loginModalContainer = document.getElementById('login-modal-container');
 const authForm = document.getElementById('auth-form');
 const emailInput = document.getElementById('email-input');
@@ -51,7 +51,7 @@ const navProfile = document.getElementById('nav-profile');
 let isLoginMode = true;
 
 // -----------------------------------------------------
-// 1. FUNCIONES DE UTILERÍA Y NAVEGACIÓN (Tus funciones)
+// 1. FUNCIONES DE UTILERÍA Y NAVEGACIÓN
 // -----------------------------------------------------
 
 /**
@@ -69,19 +69,21 @@ function displayAuthMessage(msg, isError = true) {
  */
 function toggleAuthMode() {
     isLoginMode = !isLoginMode;
-    if (isLoginMode) {
-        authTitle.textContent = 'Inicia Sesión para Acceder al Catálogo';
-        authSubmitBtn.textContent = 'Iniciar Sesión';
-        toggleModeBtn.textContent = '¿No tienes cuenta? Regístrate';
-    } else {
-        authTitle.textContent = 'Crea tu Cuenta de Coleccionista';
-        authSubmitBtn.textContent = 'Registrarse';
-        toggleModeBtn.textContent = '¿Ya tienes cuenta? Inicia Sesión';
+    if (authTitle && authSubmitBtn && toggleModeBtn && emailInput && passwordInput && errorMessage) {
+        if (isLoginMode) {
+            authTitle.textContent = 'Inicia Sesión para Acceder al Catálogo';
+            authSubmitBtn.textContent = 'Iniciar Sesión';
+            toggleModeBtn.textContent = '¿No tienes cuenta? Regístrate';
+        } else {
+            authTitle.textContent = 'Crea tu Cuenta de Coleccionista';
+            authSubmitBtn.textContent = 'Registrarse';
+            toggleModeBtn.textContent = '¿Ya tienes cuenta? Inicia Sesión';
+        }
+        // Limpia mensajes y campos al cambiar
+        errorMessage.classList.add('hidden');
+        emailInput.value = '';
+        passwordInput.value = '';
     }
-    // Limpia mensajes y campos al cambiar
-    errorMessage.classList.add('hidden');
-    emailInput.value = '';
-    passwordInput.value = '';
 }
 
 /**
@@ -117,9 +119,8 @@ function navigateTo(viewId) {
         targetView.classList.add('active');
     }
 
-    // 3. Actualizar enlaces de navegación
+    // 3. Actualizar enlaces de navegación (usando clases de Tailwind para el subrayado)
     document.querySelectorAll('.nav-link').forEach(link => {
-        // Usando la clase 'active' del CSS que definimos en index.html
         link.classList.remove('border-b-4', 'border-red-600');
         if (link.getAttribute('data-view') === viewId) {
             link.classList.add('border-b-4', 'border-red-600');
@@ -132,57 +133,65 @@ function navigateTo(viewId) {
  * @param {firebase.User} user - El objeto de usuario de Firebase.
  */
 function handleUserState(user) {
-    if (user) {
-        // --- ESTADO LOGUEADO ---
+    // Si no tenemos auth, salimos
+    if (!auth) return;
+
+    if (user && user.isAnonymous === false) {
+        // --- ESTADO LOGUEADO (Usuario Real) ---
         console.log('Usuario autenticado:', user.uid);
         
-        // Ocultar modal si estaba abierto y mostrar controles
+        // Mostrar elementos protegidos
+        if (userDisplay) userDisplay.classList.remove('hidden');
+        if (logoutBtn) logoutBtn.classList.remove('hidden');
+        if (showLoginBtn) showLoginBtn.classList.add('hidden');
+        if (navCatalog) navCatalog.classList.remove('hidden');
+        if (navProfile) navProfile.classList.remove('hidden');
+
+        // Ocultar modal si estaba abierto
         toggleLoginModal(false); 
-        userDisplay.classList.remove('hidden');
-        logoutBtn.classList.remove('hidden');
-        showLoginBtn.classList.add('hidden');
-        navCatalog.classList.remove('hidden');
-        navProfile.classList.remove('hidden');
 
         // Mostrar nombre de usuario
         const displayName = user.displayName || (user.email ? user.email.split('@')[0] : `Usuario ${user.uid.substring(0, 8)}`);
-        userDisplay.textContent = `Hola, ${displayName}`;
+        if (userDisplay) userDisplay.textContent = `Hola, ${displayName}`;
 
         // Llenar detalles del perfil
-        profileEmail.textContent = user.email || 'N/A';
-        profileDate.textContent = user.metadata.creationTime ? 
+        if (profileEmail) profileEmail.textContent = user.email || 'N/A';
+        if (profileDate) profileDate.textContent = user.metadata.creationTime ? 
             new Date(user.metadata.creationTime).toLocaleDateString() : 'N/A';
         
-        // Cargar Catálogo (verificando en window para compatibilidad con módulos)
+        // Cargar Catálogo (comprobando la existencia de la función en window)
         if (typeof window.loadCatalogAndListen === 'function') {
             window.loadCatalogAndListen(user.uid, appId); 
         }
 
-        // Inicializar listeners de Leads (verificando en window para compatibilidad con módulos)
+        // Inicializar listeners de Leads (comprobando la existencia de la función en window)
         if (typeof window.initInterestListeners === 'function') {
             window.initInterestListeners(user, appId);
         }
 
-        // Redirigir al catálogo después del login
-        navigateTo('catalog-view');
+        // Redirigir al catálogo después del login si no estamos ya en una vista protegida
+        const activeView = document.querySelector('.view.active')?.id;
+        if (activeView === 'landing-view' || !activeView) {
+             navigateTo('catalog-view');
+        }
 
     } else {
-        // --- ESTADO DESLOGUEADO (Público) ---
-        console.log('Usuario deslogueado. Mostrando Landing Page.');
+        // --- ESTADO DESLOGUEADO O ANÓNIMO (Público) ---
+        console.log('Usuario deslogueado/Anónimo. Mostrando Landing Page.');
         
         // Ocultar elementos protegidos
-        userDisplay.classList.add('hidden');
-        logoutBtn.classList.add('hidden');
-        showLoginBtn.classList.remove('hidden'); // Mostrar botón de Login
-        navCatalog.classList.add('hidden');
-        navProfile.classList.add('hidden');
+        if (userDisplay) userDisplay.classList.add('hidden');
+        if (logoutBtn) logoutBtn.classList.add('hidden');
+        if (showLoginBtn) showLoginBtn.classList.remove('hidden'); // Mostrar botón de Login
+        if (navCatalog) navCatalog.classList.add('hidden');
+        if (navProfile) navProfile.classList.add('hidden');
 
-        // Mostrar la Landing Page y asegurar la navegación
+        // Mostrar la Landing Page
         navigateTo('landing-view');
 
         // Inicializar el formulario de interés público
         if (typeof window.initPublicInterestForm === 'function') {
-            const guestId = auth?.currentUser?.uid || 'guest';
+            const guestId = user?.uid || 'guest';
             window.initPublicInterestForm(guestId, appId);
         }
     }
@@ -197,49 +206,54 @@ function handleUserState(user) {
  * Configura Firebase, autentica la sesión inicial y establece el oyente global.
  */
 async function initializeFirebase() {
-    // 1. Configuración de Firebase (Chequeo obligatorio del entorno)
-    const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
-    appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-
-    if (!firebaseConfig) {
-        console.error("FATAL ERROR: __firebase_config no está definido.");
+    // 1. VERIFICACIÓN CRÍTICA DE VARIABLES GLOBALES
+    if (typeof __firebase_config === 'undefined' || !__firebase_config) {
+        console.error("FATAL ERROR: __firebase_config no está definido o es nulo.");
+        displayAuthMessage("Error de configuración: La aplicación no puede conectarse al servidor.", true);
         return false;
     }
-    
+
     try {
+        const firebaseConfig = JSON.parse(__firebase_config);
+        appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+
         const app = initializeApp(firebaseConfig);
         db = getFirestore(app);
         auth = getAuth(app);
         
-        // Hacemos las referencias globales accesibles para otros módulos
+        // Hacemos las referencias globales accesibles
         window.db = db;
         window.auth = auth;
-        window.appId = appId; // ID de la aplicación para rutas de Firestore
+        window.appId = appId;
         
-        // 2. Configurar persistencia (opcional, pero mejora UX)
+        // 2. Configurar persistencia
         await setPersistence(auth, browserLocalPersistence);
 
-        // 3. Autenticación Inicial (Usar token de seguridad o Anonimato)
+        // 3. Obtener token de seguridad
         const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
         
+        // 4. Iniciar el Oyente de Estado de Sesión (Guardián de Acceso)
+        // Esto debe ir ANTES de cualquier intento de login para que maneje la respuesta
+        onAuthStateChanged(auth, handleUserState);
+
+        // 5. Autenticación Inicial (Usar token de seguridad o Anonimato)
         // Si no hay sesión activa, intenta autenticar con el token o de forma anónima
         if (!auth.currentUser) {
             if (initialAuthToken) {
+                console.log("Intentando signInWithCustomToken...");
                 await signInWithCustomToken(auth, initialAuthToken);
             } else {
+                console.log("Intentando signInAnonymously...");
+                // Esto crea una sesión anónima si no hay token. handleUserState la gestionará.
                 await signInAnonymously(auth); 
             }
         }
         
-        // 4. Iniciar el Oyente de Estado de Sesión (Guardián de Acceso)
-        // Llama a handleUserState inmediatamente y en cada cambio de sesión
-        onAuthStateChanged(auth, handleUserState);
-
         return true;
         
     } catch (error) {
-        console.error("Error al inicializar Firebase:", error);
-        displayAuthMessage("Error de conexión al servidor de autenticación. Intenta recargar.", true);
+        console.error("Error al inicializar Firebase (configuración o auth):", error);
+        displayAuthMessage("Error de conexión al servidor. Intenta recargar o contacta soporte.", true);
         return false;
     }
 }
@@ -247,13 +261,13 @@ async function initializeFirebase() {
 
 /**
  * -----------------------------------------------------
- * ASIGNACIÓN DE EVENTOS (Adaptado de tu código)
+ * ASIGNACIÓN DE EVENTOS
  * -----------------------------------------------------
  */
 function attachEventListeners() {
     
     // 1. Manejo del formulario (Login/Registro)
-    authForm.addEventListener('submit', async (e) => {
+    if (authForm) authForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const email = emailInput.value.trim();
         const password = passwordInput.value.trim();
@@ -269,15 +283,12 @@ function attachEventListeners() {
             errorMessage.classList.add('hidden'); 
 
             if (isLoginMode) {
-                // V9: signInWithEmailAndPassword(auth, email, password)
                 await signInWithEmailAndPassword(auth, email, password);
             } else {
-                // V9: createUserWithEmailAndPassword(auth, email, password)
                 await createUserWithEmailAndPassword(auth, email, password);
             }
         } catch (error) {
             console.error("Error de autenticación:", error.code, error.message);
-            // Muestra un error más amigable para casos comunes
             let userMessage = error.message;
             if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
                 userMessage = isLoginMode ? 'Credenciales incorrectas.' : 'Usuario no encontrado.';
@@ -289,10 +300,9 @@ function attachEventListeners() {
     });
 
     // 2. Botón de Logout
-    logoutBtn.addEventListener('click', async () => {
+    if (logoutBtn) logoutBtn.addEventListener('click', async () => {
         if (!auth) return;
         try {
-            // V9: signOut(auth)
             await signOut(auth);
         } catch (error) {
             console.error("Error al cerrar sesión:", error);
@@ -300,12 +310,11 @@ function attachEventListeners() {
     });
 
     // 3. Botón de cambio de modo (Login <-> Registro)
-    toggleModeBtn.addEventListener('click', toggleAuthMode);
+    if (toggleModeBtn) toggleModeBtn.addEventListener('click', toggleAuthMode);
 
     // 4. Botón de Login con Google
-    googleLoginBtn.addEventListener('click', async () => {
+    if (googleLoginBtn) googleLoginBtn.addEventListener('click', async () => {
         if (!auth) return;
-        // V9: Nueva instancia del proveedor y signInWithPopup
         const provider = new GoogleAuthProvider();
         try {
             await signInWithPopup(auth, provider);
@@ -316,11 +325,11 @@ function attachEventListeners() {
     });
 
     // 5. Botones de Modal (Mostrar/Cerrar)
-    showLoginBtn.addEventListener('click', () => toggleLoginModal(true));
-    closeLoginModalBtn.addEventListener('click', () => toggleLoginModal(false));
+    if (showLoginBtn) showLoginBtn.addEventListener('click', () => toggleLoginModal(true));
+    if (closeLoginModalBtn) closeLoginModalBtn.addEventListener('click', () => toggleLoginModal(false));
 
     // Clic fuera del modal para cerrarlo
-    loginModalContainer.addEventListener('click', (e) => {
+    if (loginModalContainer) loginModalContainer.addEventListener('click', (e) => {
         if (e.target === loginModalContainer) {
             toggleLoginModal(false);
         }
@@ -332,7 +341,7 @@ function attachEventListeners() {
             e.preventDefault();
             const viewId = e.target.getAttribute('data-view');
             // Solo navega si la vista existe y la sección no está oculta (para elementos protegidos)
-            if (viewId && !e.target.classList.contains('hidden')) {
+            if (viewId && link && !link.classList.contains('hidden')) {
                 navigateTo(viewId);
             }
         });
@@ -341,19 +350,19 @@ function attachEventListeners() {
 
 
 // -----------------------------------------------------
-// 3. INICIO DE LA APLICACIÓN (MANDATORIO EN MODULOS)
+// 3. INICIO DE LA APLICACIÓN
 // -----------------------------------------------------
 
-// Esperamos a que la página cargue completamente para asegurarnos de que el DOM esté listo
 window.addEventListener('load', async () => {
+    // 1. Inicializa Firebase.
     const isReady = await initializeFirebase();
     
-    // Adjunta los listeners del DOM solo si Firebase se inicializó correctamente
+    // 2. Adjunta los listeners del DOM solo si Firebase se inicializó correctamente
     if (isReady) {
         attachEventListeners();
     }
 });
 
-// Hacemos que las funciones de navegación sean globales para acceso desde otros módulos si es necesario
+// Hacemos que las funciones de navegación sean globales para que el HTML pueda usarlas directamente (ej. onclick)
 window.toggleLoginModal = toggleLoginModal;
 window.navigateTo = navigateTo;
