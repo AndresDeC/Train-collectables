@@ -3,131 +3,173 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RailCollect - Trenes Coleccionables</title>
-    <!-- Carga de Tailwind CSS -->
+    <title>Trenes Coleccionables - Tienda Exclusiva</title>
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Fuente Inter (Usada en styles/styles.css) -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet">
-    <!-- Carga de Estilos Personalizados -->
-    <link rel="stylesheet" href="styles/styles.css">
-    
-    <style>
-        /* Clases auxiliares para la lógica JS */
-        .error-msg { /* Estilo para mensajes de error de Firebase */
-            color: #dc3545;
-            background-color: rgba(220, 53, 69, 0.1);
-            padding: 10px;
-            text-align: center;
-        }
-        .success-msg { /* Estilo para mensajes de éxito */
-            color: #28a745;
-            background-color: rgba(40, 167, 69, 0.1);
-            padding: 10px;
-            text-align: center;
-        }
-    </style>
+    <!-- Enlace a tu CSS personalizado -->
+    <link rel="stylesheet" href="styles/styles.css"> 
 </head>
-<body class="bg-[#1a1a1a]">
+<body class="dark-mode">
 
-    <!-- 1. ENCABEZADO Y NAVEGACIÓN -->
+    <!-- ----------------------------------------------------- -->
+    <!-- 1. HEADER (SIEMPRE VISIBLE - Botones dinámicos) -->
+    <!-- ----------------------------------------------------- -->
     <header id="app-header">
-        <div class="logo">RailCollect</div>
-        
-        <nav id="app-nav" class="flex items-center gap-6">
-            <!-- Navegación Pública (Siempre visible) -->
-            <a href="#" class="nav-link border-b-4 border-red-600" data-view="landing-view">Inicio</a>
-            
-            <!-- Navegación Protegida (Oculta por defecto) -->
-            <a id="nav-catalog" href="#" class="nav-link hidden" data-view="catalog-view">Catálogo</a>
-            <a id="nav-profile" href="#" class="nav-link hidden" data-view="profile-view">Mi Perfil</a>
-            
-            <!-- Botón de Usuario/Login -->
-            <span id="user-display" class="hidden text-sm font-semibold text-white"></span>
-            <button id="show-login-btn" class="btn btn-primary">Iniciar Sesión / Registrarse</button>
+        <div class="header-content">
+            <h1 class="logo">Trenes Store</h1>
+            <nav id="app-nav">
+                <!-- La Landing Page es el Home. Siempre visible. -->
+                <a href="#home" class="nav-link active" data-view="landing-view">Inicio</a> 
+                
+                <!-- Solo visible cuando está logueado -->
+                <a href="#catalog" class="nav-link hidden" data-view="catalog-view" id="nav-catalog">Catálogo Exclusivo</a>
+                <a href="#profile" class="nav-link hidden" data-view="info-view" id="nav-profile">Mi Perfil</a>
+            </nav>
+        </div>
+        <!-- 🚨 CONTROLES DE USUARIO CORREGIDOS 🚨 -->
+        <div id="auth-controls" class="user-controls flex items-center space-x-4">
+            <span id="user-display" class="user-welcome hidden">Hola, Coleccionista</span>
+            <!-- Botón de Login/Registro (Visible si NO está logueado) -->
+            <button id="show-login-btn" class="btn btn-primary">Entrar / Registrarse</button>
+            <!-- Botón de Logout (Visible si SÍ está logueado) -->
             <button id="logout-btn" class="btn btn-secondary hidden">Cerrar Sesión</button>
-        </nav>
+        </div>
     </header>
 
-    <!-- 2. CONTENIDO PRINCIPAL (VISTAS SPA) -->
-    <main id="main-content">
+    <!-- ----------------------------------------------------- -->
+    <!-- 2. CONTENIDO PRINCIPAL (Container para las "páginas") -->
+    <!-- ----------------------------------------------------- -->
+    <main id="main-content" class="container">
         
-        <!-- VISTA DE ATERRIZAJE (PÚBLICO) -->
+        <!-- VISTA 0: LANDING PAGE (PÚBLICA Y ACTIVA POR DEFECTO) -->
         <section id="landing-view" class="view active">
-            <h2 class="text-4xl text-center mb-10 text-white font-bold">¡Bienvenido a RailCollect!</h2>
-            <p class="text-center text-lg mb-8 text-[#ccc]">Tu destino para colecciones exclusivas de trenes a escala. Regístrate o inicia sesión para explorar nuestro catálogo completo. Mientras tanto, déjanos tus datos y te avisaremos de las novedades.</p>
-            
-            <!-- Formulario de Interés Público (Gestionado por app/leads.js) -->
-            <div id="public-lead-form" class="lead-form-container bg-[#282828] p-8 rounded-xl shadow-lg max-w-lg mx-auto">
-                <h3 class="text-2xl text-center text-white mb-6">Déjanos tu Interés</h3>
-                <form id="interest-form" class="flex flex-col gap-4">
-                    <input type="text" id="interest-name" placeholder="Tu Nombre" required class="p-3">
-                    <input type="email" id="interest-email" placeholder="Tu Correo Electrónico" required class="p-3">
-                    <textarea id="interest-message" placeholder="¿Qué tipo de tren te interesa? (Opcional)" rows="3" class="p-3"></textarea>
-                    <div id="public-message" class="hidden"></div>
-                    <button type="submit" class="btn btn-primary">Enviar Interés</button>
-                </form>
-            </div>
-        </section>
-
-        <!-- VISTA DE CATÁLOGO (PROTEGIDA) -->
-        <section id="catalog-view" class="view hidden">
-            <h2 class="text-3xl text-white font-bold border-b border-gray-700 pb-3 mb-6">Catálogo de Trenes Exclusivos</h2>
-            <!-- El contenido se inyectará aquí (gestionado por app/firestore.js) -->
-            <div id="catalog-list" class="grid-layout">
-                <p class="text-center text-gray-500">Cargando catálogo...</p>
-            </div>
-        </section>
-
-        <!-- VISTA DE PERFIL (PROTEGIDA) -->
-        <section id="profile-view" class="view hidden">
-            <div class="auth-card">
-                <h2 class="text-3xl text-white font-bold mb-4">Detalles de Mi Cuenta</h2>
-                <p class="text-gray-400 mb-2">Email: <span id="profile-email" class="text-white font-medium">N/A</span></p>
-                <p class="text-gray-400 mb-4">Miembro desde: <span id="profile-date" class="text-white font-medium">N/A</span></p>
+            <div class="landing-content">
+                <h1 class="text-4xl font-extrabold mb-2">Bienvenido a Trenes Store</h1>
+                <p class="subtitle text-xl mb-6 text-gray-400">La colección más selecta de modelos de trenes a escala. Regístrate o inicia sesión para acceder al catálogo completo.</p>
                 
-                <h3 class="text-xl text-white font-bold mt-6 mb-4 border-t border-gray-700 pt-4">Mis Artículos de Interés</h3>
-                <!-- Los leads guardados se inyectarán aquí (gestionado por app/leads.js) -->
-                <div id="user-leads-list" class="flex flex-col gap-3">
-                    <p class="text-gray-500">No has marcado ningún artículo como favorito.</p>
+                <!-- Formulario de Captura de Leads (Público) -->
+                <div class="lead-form-container auth-card p-6">
+                    <h3 class="text-2xl mb-3">¿Interesado en novedades y ofertas?</h3>
+                    <p class="mb-4 text-gray-400">Déjanos tu correo y te avisaremos sobre las próximas colecciones.</p>
+                    
+                    <!-- 🚨 CONFIGURACIÓN FORMSUBMIT 🚨 -->
+                    <form 
+                        id="public-interest-form" 
+                        class="auth-form space-y-3"
+                        action="https://formsubmit.co/adc.030328@gmail.com"
+                        method="POST"
+                    >
+                        <!-- Campo oculto para deshabilitar el captcha (recomendado) -->
+                        <input type="hidden" name="_captcha" value="false">
+                        
+                        <!-- CAMPO DE AUTO-RESPUESTA: Envía un mensaje de agradecimiento al email del cliente -->
+                        <input type="hidden" name="_autoresponse" value="¡Gracias por tu interés en Trenes Store! Hemos recibido tu solicitud. Un coleccionista experto se comunicará contigo pronto para compartir nuestro catálogo exclusivo.">
+                        
+                        <!-- Campo Nombre (Importante: tiene atributo name="name") -->
+                        <input 
+                            type="text" 
+                            id="public-name-input" 
+                            name="name" 
+                            placeholder="Tu Nombre" 
+                            required
+                        >
+                        
+                        <!-- Campo Email (Importante: tiene atributo name="email") -->
+                        <input 
+                            type="email" 
+                            id="public-email-input" 
+                            name="email" 
+                            placeholder="Tu Correo Electrónico" 
+                            required
+                        >
+                        
+                        <!-- CAMPO: TEXTAREA PARA EL MENSAJE -->
+                        <textarea 
+                            id="public-message-input" 
+                            name="message" 
+                            placeholder="Escribe tu mensaje o pregunta aquí (opcional)" 
+                            rows="4"
+                            class="p-3 border border-gray-600 rounded-lg bg-gray-700 text-white focus:ring-blue-500 focus:border-blue-500"
+                        ></textarea>
+
+
+                        <button type="submit" class="btn btn-primary w-full mt-2">¡Me Interesa!</button>
+                        <div id="public-form-message" class="success-msg hidden"></div>
+                    </form>
                 </div>
+            </div>
+        </section>
+
+
+        <!-- VISTA 1: CATÁLOGO DE TRENES (PROTEGIDA) -->
+        <section id="catalog-view" class="view hidden">
+            <h2 class="text-3xl font-bold mb-4">Modelos Exclusivos Disponibles</h2>
+            <div id="catalog-container" class="grid-layout">
+                <!-- Tarjetas de trenes irán aquí -->
+                <p id="catalog-loading" class="text-lg text-gray-500">Cargando catálogo...</p>
+            </div>
+        </section>
+
+        <!-- VISTA 2: INFORMACIÓN DEL USUARIO / PERFIL (PROTEGIDA) -->
+        <section id="info-view" class="view hidden">
+            <div id="profile-details" class="auth-card p-6">
+                <h2 class="text-2xl mb-4">Información de Mi Perfil</h2>
+                <p class="mb-2"><strong>Email:</strong> <span id="profile-email">Cargando...</span></p>
+                <p class="mb-2"><strong>Fecha de Ingreso:</strong> <span id="profile-date">Cargando...</span></p>
+                <p class="mt-4 text-gray-500">Aquí puedes gestionar tus datos de contacto.</p>
             </div>
         </section>
 
     </main>
     
-    <!-- 3. MODAL DE AUTENTICACIÓN (Login/Registro) -->
+    <!-- 3. MODAL DE LOGIN/REGISTRO -->
     <div id="login-modal-container" class="modal-backdrop hidden">
-        <div class="auth-card modal-content">
-            <div class="flex justify-end">
-                <button id="close-login-modal" class="text-gray-500 hover:text-white text-2xl leading-none">
-                    &times;
-                </button>
-            </div>
-            <h2 id="auth-title" class="text-2xl text-center text-white font-bold">Inicia Sesión para Acceder al Catálogo</h2>
-            
-            <form id="auth-form" class="flex flex-col gap-4">
-                <input type="email" id="email-input" placeholder="Correo Electrónico" required class="p-3">
-                <input type="password" id="password-input" placeholder="Contraseña (mín. 6 caracteres)" required class="p-3">
-                <div id="error-message" class="hidden error-msg"></div>
-                <button id="auth-submit-btn" type="submit" class="btn btn-primary">Iniciar Sesión</button>
+        <div id="login-modal" class="modal-content auth-card">
+            <!-- Botón de cierre -->
+            <button class="close-btn absolute top-3 right-3 text-2xl text-gray-400 hover:text-white" id="close-login-modal">&times;</button>
+            <h3 id="auth-title" class="text-2xl font-semibold text-center mb-4">Inicia Sesión o Regístrate</h3>
+
+            <div id="error-message" class="error-msg hidden"></div>
+
+            <form id="auth-form" class="auth-form">
+                <input type="email" id="email-input" placeholder="Correo Electrónico" required>
+                <input type="password" id="password-input" placeholder="Contraseña" required>
+
+                <button type="submit" id="auth-submit-btn" class="btn btn-primary w-full mt-2">Iniciar Sesión</button>
             </form>
 
-            <div class="separator">O</div>
-
-            <button id="google-login-btn" class="btn btn-google">
-                <img class="google-logo" src="https://upload.wikimedia.org/wikipedia/commons/4/4a/Logo-google.png" onerror="this.src='https://placehold.co/20x20/ffffff/000?text=G'" alt="Logo Google">
+            <button id="toggle-mode-btn" class="btn btn-link text-center w-full">¿No tienes cuenta? Regístrate</button>
+            <p class="separator">O</p>
+            <button id="google-login-btn" class="btn btn-google w-full">
                 Continuar con Google
-            </button>
-
-            <button id="toggle-mode-btn" class="text-sm text-center text-gray-400 hover:text-white mt-2">
-                ¿No tienes cuenta? Regístrate
             </button>
         </div>
     </div>
 
-    <!-- 4. SCRIPTS DE APLICACIÓN -->
-    <script type="module" src="app/auth.js"></script>
-    <script type="module" src="app/firestore.js"></script>
-    <script type="module" src="app/leads.js"></script>
+    <!-- --------------------------------- -->
+    <!-- FIREBASE AND JAVASCRIPT IMPORTS -->
+    <!-- --------------------------------- -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+    
+    <script>
+        // Configuración de Firebase - ¡Asegúrate de que esta es tu configuración!
+        const firebaseConfig = {
+            apiKey: "AIzaSyB2OQlpj172YorIF2iB_Nvt2JB_W1U-G1A", 
+            authDomain: "extension-84b64.firebaseapp.com",
+            projectId: "extension-84b64",
+            // Agrega el resto de tu config aquí si es necesario
+        };
+        const app = firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+    </script>
+    
+    <!-- Scripts de la Aplicación (Rutas corregidas) -->
+    <script src="app/firestore.js" type="module"></script> 
+    <script src="app/leads.js" type="module"></script>    
+    <script src="app/auth.js" type="module"></script>
+
 </body>
 </html>
