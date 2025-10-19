@@ -8,6 +8,24 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Enlace a tu CSS personalizado -->
     <link rel="stylesheet" href="styles/styles.css"> 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 </head>
 <body class="dark-mode">
 
@@ -16,43 +34,23 @@
     <!-- ----------------------------------------------------- -->
     <header id="app-header">
         <div class="header-content">
-            <h1 class="logo flex items-center space-x-2">
-                <i class="fas fa-train text-3xl"></i>
-                <span>RailExpress Store</span>
-            </h1>
-            
-            <nav id="app-nav" class="hidden md:flex space-x-2">
+            <h1 class="logo">Trenes Store</h1>
+            <nav id="app-nav">
+                <!-- La Landing Page es el Home. Siempre visible. -->
                 <a href="#home" class="nav-link active" data-view="landing-view">Inicio</a> 
                 
-                <!-- Botón de Catálogo (Solo visible si está logueado) -->
-                <a href="#catalog" class="nav-link hidden" data-view="catalog-view" id="nav-catalog">
-                    <i class="fas fa-box-open mr-1"></i>Catálogo Exclusivo
-                </a>
-                <a href="#profile" class="nav-link hidden" data-view="info-view" id="nav-profile">
-                    <i class="fas fa-user-circle mr-1"></i>Mi Perfil
-                </a>
+                <!-- Solo visible cuando está logueado -->
+                <a href="#catalog" class="nav-link hidden" data-view="catalog-view" id="nav-catalog">Catálogo Exclusivo</a>
+                <a href="#profile" class="nav-link hidden" data-view="info-view" id="nav-profile">Mi Perfil</a>
             </nav>
-
-            <!-- 🚨 CONTROLES DE USUARIO Y TEMA 🚨 -->
-            <div id="auth-controls" class="user-controls flex items-center space-x-3">
-                
-                <!-- Botón de Modo Oscuro/Claro -->
-                <button id="theme-toggle-btn" onclick="toggleTheme()" class="p-2 rounded-full text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition duration-150">
-                    <i id="theme-icon" class="fas fa-sun text-xl"></i>
-                </button>
-
-                <span id="user-display" class="user-welcome hidden text-sm font-medium text-blue-600 dark:text-blue-400 truncate max-w-[100px] sm:max-w-none">Hola, Coleccionista</span>
-                
-                <!-- Botón de Login/Registro (Visible si NO está logueado) -->
-                <button id="show-login-btn" class="btn btn-primary text-sm whitespace-nowrap">
-                    <i class="fas fa-sign-in-alt mr-1"></i>Entrar
-                </button>
-                
-                <!-- Botón de Logout (Visible si SÍ está logueado) -->
-                <button id="logout-btn" class="btn btn-secondary hidden text-sm whitespace-nowrap">
-                    <i class="fas fa-sign-out-alt mr-1"></i>Salir
-                </button>
-            </div>
+        </div>
+        <!-- 🚨 CONTROLES DE USUARIO CORREGIDOS 🚨 -->
+        <div id="auth-controls" class="user-controls flex items-center space-x-4">
+            <span id="user-display" class="user-welcome hidden">Hola, Coleccionista</span>
+            <!-- Botón de Login/Registro (Visible si NO está logueado) -->
+            <button id="show-login-btn" class="btn btn-primary">Entrar / Registrarse</button>
+            <!-- Botón de Logout (Visible si SÍ está logueado) -->
+            <button id="logout-btn" class="btn btn-secondary hidden">Cerrar Sesión</button>
         </div>
     </header>
 
@@ -60,7 +58,7 @@
     <!-- 2. CONTENIDO PRINCIPAL (Container para las "páginas") -->
     <!-- ----------------------------------------------------- -->
     <main id="main-content" class="container">
-        
+
         <!-- VISTA 0: LANDING PAGE (PÚBLICA Y ACTIVA POR DEFECTO) -->
         <section id="landing-view" class="view active">
             <div class="landing-content">
@@ -137,11 +135,16 @@
                 <p class="mb-2"><strong>Email:</strong> <span id="profile-email">Cargando...</span></p>
                 <p class="mb-2"><strong>Fecha de Ingreso:</strong> <span id="profile-date">Cargando...</span></p>
                 <p class="mt-4 text-gray-500">Aquí puedes gestionar tus datos de contacto.</p>
+
+
+
+
+
             </div>
         </section>
 
     </main>
-    
+
     <!-- 3. MODAL DE LOGIN/REGISTRO -->
     <div id="login-modal-container" class="modal-backdrop hidden">
         <div id="login-modal" class="modal-content auth-card">
@@ -149,11 +152,22 @@
             <button class="close-btn absolute top-3 right-3 text-2xl text-gray-400 hover:text-white" id="close-login-modal">&times;</button>
             <h3 id="auth-title" class="text-2xl font-semibold text-center mb-4">Inicia Sesión o Regístrate</h3>
 
+
+
+
+
+
+
+
+
+
+
             <div id="error-message" class="error-msg hidden"></div>
 
             <form id="auth-form" class="auth-form">
                 <input type="email" id="email-input" placeholder="Correo Electrónico" required>
                 <input type="password" id="password-input" placeholder="Contraseña" required>
+
 
                 <button type="submit" id="auth-submit-btn" class="btn btn-primary w-full mt-2">Iniciar Sesión</button>
             </form>
@@ -165,6 +179,27 @@
             </button>
         </div>
     </div>
+
+    <!-- --------------------------------- -->
+    <!-- FIREBASE AND JAVASCRIPT IMPORTS -->
+    <!-- --------------------------------- -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+    
+    <script>
+        // Configuración de Firebase - ¡Asegúrate de que esta es tu configuración!
+        const firebaseConfig = {
+            apiKey: "AIzaSyB2OQlpj172YorIF2iB_Nvt2JB_W1U-G1A", 
+            authDomain: "extension-84b64.firebaseapp.com",
+            projectId: "extension-84b64",
+            // Agrega el resto de tu config aquí si es necesario
+        };
+        const app = firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+    </script>
+    
     <!-- Scripts de la Aplicación (Rutas corregidas) -->
     <script src="app/firestore.js" type="module"></script> 
     <script src="app/leads.js" type="module"></script>    

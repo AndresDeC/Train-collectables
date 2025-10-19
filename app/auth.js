@@ -1,28 +1,4 @@
-import {
-    initializeApp
-} from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-import {
-    browserLocalPersistence,
-    createUserWithEmailAndPassword,
-    getAuth,
-    GoogleAuthProvider,
-    onAuthStateChanged,
-    setPersistence,
-    signInAnonymously,
-    signInWithCustomToken,
-    signInWithEmailAndPassword,
-    signInWithPopup,
-    signOut
-} from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-import {
-    getFirestore
-} from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-
-// --- DECLARACIÓN DE VARIABLES GLOBALES DE FIREBASE ---
-let auth;
-let db;
-let appId;
-let userId; // El ID del usuario actual
+// app/auth.js
 
 // Referencias a elementos del DOM
 const loginModalContainer = document.getElementById('login-modal-container');
@@ -53,6 +29,7 @@ let isLoginMode = true;
  * Muestra un mensaje de error o éxito en el modal de autenticación.
  */
 function displayAuthMessage(msg, isError = true) {
+
     errorMessage.textContent = msg;
     errorMessage.classList.remove('hidden', 'error-msg', 'success-msg');
     errorMessage.classList.add(isError ? 'error-msg' : 'success-msg');
@@ -82,6 +59,7 @@ function toggleAuthMode() {
  * Muestra/Oculta el modal de Login.
  */
 function toggleLoginModal(show = true) {
+
     if (show) {
         // Al abrir, siempre va al modo Login por defecto
         isLoginMode = true;
@@ -112,29 +90,26 @@ function navigateTo(viewId) {
 
     // 3. Actualizar enlaces de navegación
     document.querySelectorAll('.nav-link').forEach(link => {
-        link.classList.remove('border-b-4', 'border-red-600'); // Quitamos la clase de activo
+
         if (link.getAttribute('data-view') === viewId) {
-            link.classList.add('border-b-4', 'border-red-600'); // Agregamos la clase de activo
+            link.classList.add('active');
+        } else {
+            link.classList.remove('active');
         }
     });
 }
-window.navigateTo = navigateTo; // Hacemos global para uso en el HTML
 
 /**
  * Maneja el estado de la aplicación (logueado vs. deslogueado)
  * @param {firebase.User} user - El objeto de usuario de Firebase.
  */
 function handleUserState(user) {
-    // Definir userId globalmente (sea real o anónimo)
-    userId = user?.uid || crypto.randomUUID();
-    window.userId = userId;
-    window.appId = appId; // Aseguramos que appId también sea global
-
-    if (user && user.isAnonymous === false) {
-        // --- ESTADO LOGUEADO (Usuario Real) ---
+    if (user) {
+        // --- ESTADO LOGUEADO ---
         console.log('Usuario autenticado:', user.uid);
-        
+
         // Ocultar modal si estaba abierto y mostrar controles
+
         toggleLoginModal(false); 
         userDisplay.classList.remove('hidden');
         logoutBtn.classList.remove('hidden');
@@ -149,28 +124,25 @@ function handleUserState(user) {
         // Llenar detalles del perfil
         profileEmail.textContent = user.email;
         profileDate.textContent = user.metadata.creationTime ? 
-            new Date(user.metadata.creationTime).toLocaleDateString('es-ES') : 'N/A';
-        
-        // Cargar Catálogo (Ahora pasamos userId y appId)
-        if (typeof window.loadCatalogAndListen === 'function') {
-            console.log("[AUTH] ✅ Invocando carga de Catálogo para userId y appId.");
-            // PASAMOS LOS PARÁMETROS CRÍTICOS
-            window.loadCatalogAndListen(userId, appId); 
+            new Date(user.metadata.creationTime).toLocaleDateString() : 'N/A';
+
+        // Cargar Catálogo (asume que esta función existe en app/firestore.js)
+        if (typeof loadCatalogAndListen === 'function') {
+            loadCatalogAndListen(); 
         }
 
         // Inicializar listeners de Leads (asume que esta función existe en app/leads.js)
-        if (typeof window.initInterestListeners === 'function') {
-             // PASAMOS LOS PARÁMETROS CRÍTICOS
-             window.initInterestListeners(user, appId);
+        if (typeof initInterestListeners === 'function') {
+            initInterestListeners(user);
         }
 
         // Redirigir al catálogo después del login
         navigateTo('catalog-view');
 
     } else {
-        // --- ESTADO DESLOGUEADO O ANÓNIMO (Público) ---
-        console.log('Usuario deslogueado/anónimo. Mostrando Landing Page.');
-        
+        // --- ESTADO DESLOGUEADO (Público) ---
+        console.log('Usuario deslogueado. Mostrando Landing Page.');
+
         // Ocultar elementos protegidos
         userDisplay.classList.add('hidden');
         logoutBtn.classList.add('hidden');
@@ -182,62 +154,53 @@ function handleUserState(user) {
         navigateTo('landing-view');
 
         // Inicializar el formulario de interés público
-        if (typeof window.initPublicInterestForm === 'function') {
-            // PASAMOS LOS PARÁMETROS CRÍTICOS
-            window.initPublicInterestForm(userId, appId);
+        if (typeof initPublicInterestForm === 'function') {
+            initPublicInterestForm();
+
         }
     }
 }
 
-
 /**
  * -----------------------------------------------------
- * EVENT LISTENERS GLOBALES (CON LAS FUNCIONES MODERNAS)
+ * EVENT LISTENERS GLOBALES
  * -----------------------------------------------------
  */
+
+// 1. Guardián de Acceso (onAuthStateChanged) - Función principal de control de sesión
+auth.onAuthStateChanged(handleUserState);
 
 // 2. Manejo del formulario (Login/Registro)
 authForm.addEventListener('submit', async (e) => {
     e.preventDefault();
-    if (!auth) return;
-    
     const email = emailInput.value.trim();
     const password = passwordInput.value.trim();
+
 
     if (password.length < 6) {
         displayAuthMessage("La contraseña debe tener al menos 6 caracteres.", true);
         return;
     }
-    
+
     try {
         errorMessage.classList.add('hidden'); 
-
         if (isLoginMode) {
-            // SINTAXIS MODERNA: signInWithEmailAndPassword(auth, email, password)
-            await signInWithEmailAndPassword(auth, email, password);
+            await auth.signInWithEmailAndPassword(email, password);
         } else {
-            // SINTAXIS MODERNA: createUserWithEmailAndPassword(auth, email, password)
-            await createUserWithEmailAndPassword(auth, email, password);
-            // Si el registro es exitoso, onAuthStateChanged se dispara
+            await auth.createUserWithEmailAndPassword(email, password);
+            // Si el registro es exitoso, Firebase inicia sesión automáticamente y activa handleUserState
         }
-        toggleLoginModal(false); 
     } catch (error) {
         console.error("Error de autenticación:", error.code, error.message);
-        let userMessage = error.message;
-        if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found') {
-             userMessage = 'Credenciales incorrectas (email o contraseña).';
-        } else if (error.code === 'auth/email-already-in-use') {
-             userMessage = 'Este email ya está registrado.';
-        }
-        displayAuthMessage(userMessage, true);
+        // Firebase Auth errores comunes: auth/email-already-in-use, auth/user-not-found, etc.
+        displayAuthMessage(error.message, true);
     }
 });
 
 // 3. Botón de Logout
 logoutBtn.addEventListener('click', async () => {
-    if (!auth) return;
     try {
-        await signOut(auth);
+        await auth.signOut();
     } catch (error) {
         console.error("Error al cerrar sesión:", error);
     }
@@ -246,19 +209,15 @@ logoutBtn.addEventListener('click', async () => {
 // 4. Botón de cambio de modo (Login <-> Registro)
 toggleModeBtn.addEventListener('click', toggleAuthMode);
 
-// 5. Botón de Login con Google (CORREGIDO)
+
+// 5. Botón de Login con Google
 googleLoginBtn.addEventListener('click', async () => {
-    if (!auth) return;
-    // La variable GoogleAuthProvider DEBE ser importada y se inicializa con new
-    const provider = new GoogleAuthProvider(); 
+    const provider = new firebase.auth.GoogleAuthProvider();
     try {
-        // SINTAXIS MODERNA: signInWithPopup(auth, provider)
-        await signInWithPopup(auth, provider); 
+        await auth.signInWithPopup(provider);
     } catch (error) {
         console.error("Error de Google Auth:", error);
-        if (error.code !== 'auth/popup-closed-by-user') {
-            displayAuthMessage("Fallo la autenticación con Google. Intenta de nuevo.", true);
-        }
+        displayAuthMessage("Fallo la autenticación con Google. Intenta de nuevo.", true);
     }
 });
 
@@ -272,7 +231,6 @@ loginModalContainer.addEventListener('click', (e) => {
         toggleLoginModal(false);
     }
 });
-
 
 /**
  * -----------------------------------------------------
@@ -289,51 +247,3 @@ document.querySelectorAll('.nav-link').forEach(link => {
         }
     });
 });
-
-
-/**
- * -----------------------------------------------------
- * INICIALIZACIÓN DE FIREBASE (AÑADIDO)
- * -----------------------------------------------------
- */
-async function initializeFirebase() {
-    if (typeof __firebase_config === 'undefined' || !__firebase_config) {
-        console.error("FATAL ERROR: __firebase_config no está definido o es nulo.");
-        return;
-    }
-
-    try {
-        const firebaseConfig = JSON.parse(__firebase_config);
-        appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-
-        const app = initializeApp(firebaseConfig);
-        db = getFirestore(app);
-        auth = getAuth(app);
-        
-        // 1. Configurar persistencia
-        await setPersistence(auth, browserLocalPersistence);
-
-        // 2. Obtener token de seguridad
-        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
-        
-        // 3. Iniciar el Oyente de Estado de Sesión (Guardián de Acceso)
-        // ESTA ES LA ÚNICA FUNCIÓN QUE DEBE CORRER INMEDIATAMENTE
-        onAuthStateChanged(auth, handleUserState);
-
-        // 4. Autenticación Inicial (si no hay un usuario actual, iniciar con token o anónimamente)
-        if (!auth.currentUser) {
-            if (initialAuthToken) {
-                await signInWithCustomToken(auth, initialAuthToken);
-            } else {
-                await signInAnonymously(auth); 
-            }
-        }
-        
-    } catch (error) {
-        console.error("Error al inicializar Firebase (configuración o auth):", error);
-        displayAuthMessage("Error de conexión al servidor. Intenta recargar o contacta soporte.", true);
-    }
-}
-
-// Inicializar al cargar la ventana
-window.addEventListener('load', initializeFirebase);
