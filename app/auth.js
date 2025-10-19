@@ -1,4 +1,28 @@
-// app/auth.js
+import {
+    initializeApp
+} from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+import {
+    browserLocalPersistence,
+    createUserWithEmailAndPassword,
+    getAuth,
+    GoogleAuthProvider,
+    onAuthStateChanged,
+    setPersistence,
+    signInAnonymously,
+    signInWithCustomToken,
+    signInWithEmailAndPassword,
+    signInWithPopup,
+    signOut
+} from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+import {
+    getFirestore
+} from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+// --- DECLARACIÓN DE VARIABLES GLOBALES DE FIREBASE ---
+let auth;
+let db;
+let appId;
+let userId; // El ID del usuario actual
 
 // Referencias a elementos del DOM
 const loginModalContainer = document.getElementById('login-modal-container');
@@ -88,21 +112,26 @@ function navigateTo(viewId) {
 
     // 3. Actualizar enlaces de navegación
     document.querySelectorAll('.nav-link').forEach(link => {
+        link.classList.remove('border-b-4', 'border-red-600'); // Quitamos la clase de activo
         if (link.getAttribute('data-view') === viewId) {
-            link.classList.add('active');
-        } else {
-            link.classList.remove('active');
+            link.classList.add('border-b-4', 'border-red-600'); // Agregamos la clase de activo
         }
     });
 }
+window.navigateTo = navigateTo; // Hacemos global para uso en el HTML
 
 /**
  * Maneja el estado de la aplicación (logueado vs. deslogueado)
  * @param {firebase.User} user - El objeto de usuario de Firebase.
  */
 function handleUserState(user) {
-    if (user) {
-        // --- ESTADO LOGUEADO ---
+    // Definir userId globalmente (sea real o anónimo)
+    userId = user?.uid || crypto.randomUUID();
+    window.userId = userId;
+    window.appId = appId; // Aseguramos que appId también sea global
+
+    if (user && user.isAnonymous === false) {
+        // --- ESTADO LOGUEADO (Usuario Real) ---
         console.log('Usuario autenticado:', user.uid);
         
         // Ocultar modal si estaba abierto y mostrar controles
@@ -120,24 +149,27 @@ function handleUserState(user) {
         // Llenar detalles del perfil
         profileEmail.textContent = user.email;
         profileDate.textContent = user.metadata.creationTime ? 
-            new Date(user.metadata.creationTime).toLocaleDateString() : 'N/A';
+            new Date(user.metadata.creationTime).toLocaleDateString('es-ES') : 'N/A';
         
-        // Cargar Catálogo (asume que esta función existe en app/firestore.js)
-        if (typeof loadCatalogAndListen === 'function') {
-            loadCatalogAndListen(); 
+        // Cargar Catálogo (Ahora pasamos userId y appId)
+        if (typeof window.loadCatalogAndListen === 'function') {
+            console.log("[AUTH] ✅ Invocando carga de Catálogo para userId y appId.");
+            // PASAMOS LOS PARÁMETROS CRÍTICOS
+            window.loadCatalogAndListen(userId, appId); 
         }
 
         // Inicializar listeners de Leads (asume que esta función existe en app/leads.js)
-        if (typeof initInterestListeners === 'function') {
-             initInterestListeners(user);
+        if (typeof window.initInterestListeners === 'function') {
+             // PASAMOS LOS PARÁMETROS CRÍTICOS
+             window.initInterestListeners(user, appId);
         }
 
         // Redirigir al catálogo después del login
         navigateTo('catalog-view');
 
     } else {
-        // --- ESTADO DESLOGUEADO (Público) ---
-        console.log('Usuario deslogueado. Mostrando Landing Page.');
+        // --- ESTADO DESLOGUEADO O ANÓNIMO (Público) ---
+        console.log('Usuario deslogueado/anónimo. Mostrando Landing Page.');
         
         // Ocultar elementos protegidos
         userDisplay.classList.add('hidden');
@@ -150,24 +182,25 @@ function handleUserState(user) {
         navigateTo('landing-view');
 
         // Inicializar el formulario de interés público
-        if (typeof initPublicInterestForm === 'function') {
-            initPublicInterestForm();
+        if (typeof window.initPublicInterestForm === 'function') {
+            // PASAMOS LOS PARÁMETROS CRÍTICOS
+            window.initPublicInterestForm(userId, appId);
         }
     }
 }
 
+
 /**
  * -----------------------------------------------------
- * EVENT LISTENERS GLOBALES
+ * EVENT LISTENERS GLOBALES (CON LAS FUNCIONES MODERNAS)
  * -----------------------------------------------------
  */
-
-// 1. Guardián de Acceso (onAuthStateChanged) - Función principal de control de sesión
-auth.onAuthStateChanged(handleUserState);
 
 // 2. Manejo del formulario (Login/Registro)
 authForm.addEventListener('submit', async (e) => {
     e.preventDefault();
+    if (!auth) return;
+    
     const email = emailInput.value.trim();
     const password = passwordInput.value.trim();
 
@@ -180,22 +213,27 @@ authForm.addEventListener('submit', async (e) => {
         errorMessage.classList.add('hidden'); 
 
         if (isLoginMode) {
-            await auth.signInWithEmailAndPassword(email, password);
+            await signInWithEmailAndPassword(auth, email, password);
         } else {
-            await auth.createUserWithEmailAndPassword(email, password);
-            // Si el registro es exitoso, Firebase inicia sesión automáticamente y activa handleUserState
+            await createUserWithEmailAndPassword(auth, email, password);
+            // Si el registro es exitoso, onAuthStateChanged se dispara
         }
+        toggleLoginModal(false); 
     } catch (error) {
         console.error("Error de autenticación:", error.code, error.message);
-        // Firebase Auth errores comunes: auth/email-already-in-use, auth/user-not-found, etc.
-        displayAuthMessage(error.message, true);
+        let userMessage = error.message;
+        if (error.code === 'auth/invalid-credential') {
+             userMessage = isLoginMode ? 'Credenciales incorrectas (email o contraseña).' : 'Usuario no encontrado.';
+        }
+        displayAuthMessage(userMessage, true);
     }
 });
 
 // 3. Botón de Logout
 logoutBtn.addEventListener('click', async () => {
+    if (!auth) return;
     try {
-        await auth.signOut();
+        await signOut(auth);
     } catch (error) {
         console.error("Error al cerrar sesión:", error);
     }
@@ -206,12 +244,15 @@ toggleModeBtn.addEventListener('click', toggleAuthMode);
 
 // 5. Botón de Login con Google
 googleLoginBtn.addEventListener('click', async () => {
-    const provider = new firebase.auth.GoogleAuthProvider();
+    if (!auth) return;
+    const provider = new GoogleAuthProvider();
     try {
-        await auth.signInWithPopup(provider);
+        await signInWithPopup(auth, provider);
     } catch (error) {
         console.error("Error de Google Auth:", error);
-        displayAuthMessage("Fallo la autenticación con Google. Intenta de nuevo.", true);
+        if (error.code !== 'auth/popup-closed-by-user') {
+            displayAuthMessage("Fallo la autenticación con Google. Intenta de nuevo.", true);
+        }
     }
 });
 
@@ -242,3 +283,51 @@ document.querySelectorAll('.nav-link').forEach(link => {
         }
     });
 });
+
+
+/**
+ * -----------------------------------------------------
+ * INICIALIZACIÓN DE FIREBASE (AÑADIDO)
+ * -----------------------------------------------------
+ */
+async function initializeFirebase() {
+    if (typeof __firebase_config === 'undefined' || !__firebase_config) {
+        console.error("FATAL ERROR: __firebase_config no está definido o es nulo.");
+        return;
+    }
+
+    try {
+        const firebaseConfig = JSON.parse(__firebase_config);
+        appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+
+        const app = initializeApp(firebaseConfig);
+        db = getFirestore(app);
+        auth = getAuth(app);
+        
+        // 1. Configurar persistencia
+        await setPersistence(auth, browserLocalPersistence);
+
+        // 2. Obtener token de seguridad
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+        
+        // 3. Iniciar el Oyente de Estado de Sesión (Guardián de Acceso)
+        // ESTA ES LA ÚNICA FUNCIÓN QUE DEBE CORRER INMEDIATAMENTE
+        onAuthStateChanged(auth, handleUserState);
+
+        // 4. Autenticación Inicial (si no hay un usuario actual, iniciar con token o anónimamente)
+        if (!auth.currentUser) {
+            if (initialAuthToken) {
+                await signInWithCustomToken(auth, initialAuthToken);
+            } else {
+                await signInAnonymously(auth); 
+            }
+        }
+        
+    } catch (error) {
+        console.error("Error al inicializar Firebase (configuración o auth):", error);
+        displayAuthMessage("Error de conexión al servidor. Intenta recargar o contacta soporte.", true);
+    }
+}
+
+// Inicializar al cargar la ventana
+window.addEventListener('load', initializeFirebase);
