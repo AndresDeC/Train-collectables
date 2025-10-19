@@ -1,13 +1,16 @@
-import { collection, getFirestore, onSnapshot, query } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+import { collection, onSnapshot, query } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
 // Referencias del DOM y creación de elementos necesarios
 const catalogContainer = document.getElementById('catalog-container');
 const catalogLoading = document.getElementById('catalog-loading'); 
 
-// Importante: Obtenemos el ID de la aplicación y la instancia de la base de datos
+// Importante: Obtenemos el ID de la aplicación.
 const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-// Aseguramos que la instancia de la DB global esté disponible
-const db = window.db || getFirestore(); 
+
+// --- CAMBIO CLAVE: Usamos la instancia global 'db' definida en app/auth.js ---
+// En este punto, 'window.db' ya debería contener la instancia inicializada de Firestore.
+const db = window.db; 
+// --------------------------------------------------------------------------
 
 // 1. CREACIÓN DINÁMICA DEL CONTENEDOR DE FILTROS
 const filtersContainer = document.createElement('div');
@@ -299,9 +302,11 @@ function hideProductModal() {
  * y maneja la lógica de filtrado y renderizado.
  */
 function initializeTrainCatalog() { 
-    if (!catalogContainer || !db) {
-        console.error("Catálogo no iniciado: Contenedor o DB no disponibles.");
-        return;
+    // Comprobación tardía para asegurar que la DB esté disponible
+    if (!catalogContainer || !window.db) {
+        console.error("Catálogo no iniciado: Contenedor o DB (window.db) no disponibles. Esperando la inicialización en auth.js.");
+        // Si no está lista, salimos. auth.js volverá a llamar cuando esté listo.
+        return; 
     }
     
     if (catalogLoading) catalogLoading.classList.remove('hidden');
@@ -310,10 +315,9 @@ function initializeTrainCatalog() {
 
     console.log('Iniciando escucha en tiempo real del catálogo de trenes...');
     
-    // 🚨 RUTA CORREGIDA con sintaxis modular:
-    // Asegura que apunta a /artifacts/{appId}/public/data/Trenes
-    const collectionRef = collection(db, `artifacts/${appId}/public/data/Trenes`);
-    const q = query(collectionRef); // Puedes añadir aquí ordenación si fuera necesario
+    // Ruta corregida: /artifacts/{appId}/public/data/Trenes
+    const collectionRef = collection(window.db, `artifacts/${appId}/public/data/Trenes`);
+    const q = query(collectionRef); 
 
     // Usamos onSnapshot para mantener la vista actualizada en tiempo real
     const unsubscribe = onSnapshot(q, (snapshot) => {

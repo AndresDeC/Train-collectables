@@ -1,4 +1,43 @@
-// app/auth.js
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+import { createUserWithEmailAndPassword, getAuth, GoogleAuthProvider, onAuthStateChanged, signInWithCustomToken, signInWithEmailAndPassword, signInWithPopup, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+import { getFirestore, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+// --- CONFIGURACIÓN E INICIALIZACIÓN DE FIREBASE ---
+// Variables globales (asumidas por el entorno Canvas)
+const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
+const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+// Inicializa la app y los servicios
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+setLogLevel('debug'); // Útil para depuración
+
+// Exporta las instancias para que otros módulos las puedan usar si se cargan como módulos,
+// aunque principalmente las exponemos globalmente para la conexión con firestore.js
+window.db = db;
+window.auth = auth;
+
+// Autenticación inicial automática con el token del entorno
+async function authenticateInitialUser() {
+    try {
+        if (initialAuthToken) {
+            const userCredential = await signInWithCustomToken(auth, initialAuthToken);
+            console.log("Usuario autenticado automáticamente:", userCredential.user.uid);
+        } else {
+            // Manejar un caso donde no hay token, aunque el Canvas lo proporciona
+            console.warn("Token de autenticación inicial no encontrado.");
+        }
+    } catch (error) {
+        console.error("Error en la autenticación inicial con custom token:", error);
+    }
+}
+
+// Llama a la autenticación inicial al cargar el script
+authenticateInitialUser();
+// --- FIN DE INICIALIZACIÓN ---
+
 
 // Referencias a elementos del DOM
 const loginModalContainer = document.getElementById('login-modal-container');
@@ -114,17 +153,17 @@ function handleUserState(user) {
         navProfile.classList.remove('hidden');
 
         // Mostrar nombre de usuario
-        const displayName = user.displayName || user.email.split('@')[0];
+        const displayName = user.displayName || user.email?.split('@')[0] || 'Coleccionista';
         userDisplay.textContent = `Hola, ${displayName}`;
 
         // Llenar detalles del perfil
-        profileEmail.textContent = user.email;
+        profileEmail.textContent = user.email || 'N/A';
         profileDate.textContent = user.metadata.creationTime ? 
             new Date(user.metadata.creationTime).toLocaleDateString() : 'N/A';
         
-        // Cargar Catálogo (asume que esta función existe en app/firestore.js)
-        if (typeof loadCatalogAndListen === 'function') {
-            loadCatalogAndListen(); 
+        // Cargar Catálogo (USANDO EL NOMBRE DE FUNCIÓN ACTUALIZADO)
+        if (typeof initializeTrainCatalog === 'function') {
+            initializeTrainCatalog(); 
         }
 
         // Inicializar listeners de Leads (asume que esta función existe en app/leads.js)
@@ -163,7 +202,8 @@ function handleUserState(user) {
  */
 
 // 1. Guardián de Acceso (onAuthStateChanged) - Función principal de control de sesión
-auth.onAuthStateChanged(handleUserState);
+// NOTA: Mover la inicialización de auth aquí abajo ya que la instancia 'auth' ahora es una constante de módulo.
+onAuthStateChanged(auth, handleUserState);
 
 // 2. Manejo del formulario (Login/Registro)
 authForm.addEventListener('submit', async (e) => {
@@ -180,9 +220,9 @@ authForm.addEventListener('submit', async (e) => {
         errorMessage.classList.add('hidden'); 
 
         if (isLoginMode) {
-            await auth.signInWithEmailAndPassword(email, password);
+            await signInWithEmailAndPassword(auth, email, password);
         } else {
-            await auth.createUserWithEmailAndPassword(email, password);
+            await createUserWithEmailAndPassword(auth, email, password);
             // Si el registro es exitoso, Firebase inicia sesión automáticamente y activa handleUserState
         }
     } catch (error) {
@@ -195,7 +235,7 @@ authForm.addEventListener('submit', async (e) => {
 // 3. Botón de Logout
 logoutBtn.addEventListener('click', async () => {
     try {
-        await auth.signOut();
+        await signOut(auth);
     } catch (error) {
         console.error("Error al cerrar sesión:", error);
     }
@@ -204,11 +244,11 @@ logoutBtn.addEventListener('click', async () => {
 // 4. Botón de cambio de modo (Login <-> Registro)
 toggleModeBtn.addEventListener('click', toggleAuthMode);
 
-// 5. Botón de Login con Google
+// 5. Botón de Login con Google (usando Provider)
 googleLoginBtn.addEventListener('click', async () => {
-    const provider = new firebase.auth.GoogleAuthProvider();
+    const provider = new GoogleAuthProvider();
     try {
-        await auth.signInWithPopup(provider);
+        await signInWithPopup(auth, provider);
     } catch (error) {
         console.error("Error de Google Auth:", error);
         displayAuthMessage("Fallo la autenticación con Google. Intenta de nuevo.", true);
