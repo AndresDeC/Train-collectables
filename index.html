@@ -7,27 +7,42 @@
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- Configuración y Estilos Consolidados (CSS) -->
+    <!-- Configuración ÚNICA y Estilos Consolidados (CSS) -->
     <script>
+        // Configuración de Tailwind: Habilita 'dark' class en <html> y extiende colores
         tailwind.config = {
+            darkMode: 'class', 
             theme: {
                 extend: {
                     colors: {
+                        // Colores personalizados
                         'primary-dark': '#1e293b',
                         'secondary-light': '#94a3b8',
                         'accent-blue': '#3b82f6',
                     },
-                }
-            }
+                },
+            },
         }
     </script>
     <style>
-        body { font-family: 'Inter', sans-serif; }
-        .dark-mode {
-            background-color: #0f172a;
-            color: #f8fafc;
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
+        body { 
+            font-family: 'Inter', sans-serif; 
+            /* Se ha quitado la clase .dark-mode CSS, se usa Tailwind */
             min-height: 100vh;
+            transition: background-color 0.3s; /* Transición para el body */
         }
+        /* Estilos generales para el modo claro/oscuro (aplicado por defecto a body) */
+        body { 
+            background-color: #f8fafc; /* Modo Claro: white/slate */
+            color: #1e293b; /* Modo Claro: dark text */
+        }
+        /* Sobreescribe para el modo OSCURO (aplicado cuando <html> tiene la clase 'dark') */
+        .dark body { 
+            background-color: #0f172a; 
+            color: #f8fafc; 
+        }
+
         .container { max-width: 1200px; margin: 0 auto; padding: 2rem 1rem; }
         
         /* Header & Navegación */
@@ -145,9 +160,23 @@
         .separator::before { left: 0; }
         .separator::after { right: 0; }
     </style>
-
+    <!-- Script de Inicialización del Tema (Anti-FOUC) -->
+    <script>
+        // Función para inicializar el tema inmediatamente antes de cargar el body
+        (function() {
+            const theme = localStorage.getItem('theme');
+            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            
+            if (theme === 'dark' || (!theme && prefersDark)) {
+                document.documentElement.classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+            }
+        })();
+    </script>
 </head>
-<body class="dark-mode">
+<!-- Se quitó la clase body="dark-mode" ya que se maneja con el script de arriba y las clases de Tailwind -->
+<body>
 
     <!-- ----------------------------------------------------- -->
     <!-- 1. HEADER (SIEMPRE VISIBLE - Botones dinámicos) -->
@@ -164,13 +193,30 @@
                 <a href="perfil.html" class="nav-link hidden" id="nav-profile">Mi Perfil</a>
             </nav>
         </div>
-        <!-- 🚨 CONTROLES DE USUARIO 🚨 -->
-        <div id="auth-controls" class="user-controls flex items-center space-x-4">
-            <span id="user-display" class="user-welcome hidden text-sm">Hola, Coleccionista</span>
-            <!-- Botón de Login/Registro (Visible si NO está logueado) -->
-            <button id="show-login-btn" class="btn btn-primary">Entrar / Registrarse</button>
-            <!-- Botón de Logout (Visible si SÍ está logueado) -->
-            <button id="logout-btn" class="btn btn-secondary hidden">Cerrar Sesión</button>
+        
+        <!-- BOTÓN DE TEMA Y CONTROLES DE USUARIO AGRUPADOS -->
+        <div class="flex items-center space-x-4">
+            
+            <!-- Botón de Alternancia de Tema (Ahora simple y bien integrado en el header) -->
+            <button 
+                id="theme-toggle" 
+                class="p-3 rounded-full text-yellow-500 hover:text-yellow-700 dark:text-indigo-400 dark:hover:text-indigo-600 transition duration-150 bg-gray-100 dark:bg-gray-700 shadow-md"
+                aria-label="Alternar modo oscuro/claro"
+            >
+                <svg id="theme-icon" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <!-- Icono inicial (se actualizará con JS) -->
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path>
+                </svg>
+            </button>
+
+            <!-- 🚨 CONTROLES DE USUARIO 🚨 -->
+            <div id="auth-controls" class="user-controls flex items-center space-x-4">
+                <span id="user-display" class="user-welcome hidden text-sm">Hola, Coleccionista</span>
+                <!-- Botón de Login/Registro (Visible si NO está logueado) -->
+                <button id="show-login-btn" class="btn btn-primary">Entrar / Registrarse</button>
+                <!-- Botón de Logout (Visible si SÍ está logueado) -->
+                <button id="logout-btn" class="btn btn-secondary hidden">Cerrar Sesión</button>
+            </div>
         </div>
     </header>
 
@@ -424,10 +470,62 @@
                 navProfile.classList.add('hidden');
             }
         });
+        
+        // === 5. THEME TOGGLE LOGIC ===
+
+        // Referencias a los elementos del botón
+        const themeToggleButton = document.getElementById('theme-toggle');
+        const themeIcon = document.getElementById('theme-icon');
+
+        /**
+         * Alterna el modo oscuro y actualiza el estado en localStorage y el icono.
+         */
+        function toggleTheme() {
+            const html = document.documentElement;
+            const isDark = html.classList.contains('dark');
+
+            if (isDark) {
+                html.classList.remove('dark');
+                localStorage.setItem('theme', 'light');
+            } else {
+                html.classList.add('dark');
+                localStorage.setItem('theme', 'dark');
+            }
+            updateThemeIcon();
+        }
+
+        /**
+         * Actualiza el icono del botón de tema (Sol o Luna) según el tema actual.
+         * Se usan los paths de SVG de Heroicons/Tailwind (diferentes a los de Lucide de la versión anterior)
+         */
+        function updateThemeIcon() {
+            const isDark = document.documentElement.classList.contains('dark');
+            
+            // Si está oscuro (isDark = true), mostramos el SOL para cambiar a claro (Ícono de Sol)
+            if (isDark) {
+                // Sol
+                themeIcon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />`;
+                
+                // Actualiza las clases de color del botón (Moon/Indigo look)
+                themeToggleButton.classList.remove('text-yellow-500', 'hover:text-yellow-700');
+                themeToggleButton.classList.add('text-indigo-400', 'hover:text-indigo-600');
+                
+            } else {
+                // Luna (para indicar que el próximo modo es oscuro)
+                themeIcon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />`;
+
+                // Actualiza las clases de color del botón (Sun/Yellow look)
+                themeToggleButton.classList.remove('text-indigo-400', 'hover:text-indigo-600');
+                themeToggleButton.classList.add('text-yellow-500', 'hover:text-yellow-700');
+            }
+        }
+        
+        // Asigna el listener al botón
+        themeToggleButton.addEventListener('click', toggleTheme);
+        // Asegura que el icono se dibuje correctamente al cargar la página
+        window.addEventListener('load', updateThemeIcon);
 
     </script>
     
-    <!-- Scripts externos eliminados para consolidación -->
-
 </body>
 </html>
