@@ -3,170 +3,1239 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RailExpress Store - Trenes Coleccionables</title>
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- CSS de la Aplicación -->
-    <link rel="stylesheet" href="styles/styles.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-</head>
-<body class="light-mode">
+    <title>RailCollect - Catálogo de Trenes Modelo</title>
+    <!-- Iconos de Font Awesome para el modo oscuro/claro -->
+    <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
 
-    <!-- ----------------------------------------------------- -->
-    <!-- 1. HEADER (SIEMPRE VISIBLE) -->
-    <!-- ----------------------------------------------------- -->
+    <!-- ESTILOS CSS PERSONALIZADOS (Proporcionados por el usuario, reubicados aquí) -->
+    <style>
+        /* -------------------------------------------------------------------------- */
+        /* 0. GLOBAL RESET & BASE                                                     */
+        /* -------------------------------------------------------------------------- */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+
+        :root {
+            /* Colores del Tema Oscuro (Valores por Defecto) */
+            --color-background-primary: #121212;
+            --color-background-secondary: #1e1e1e;
+            --color-text-primary: #e0e0e0;
+            --color-text-secondary: #b0b0b0;
+            --color-accent: #ff6e40; /* Naranja/Cobre para acentos */
+            --color-success: #4caf50;
+            --color-error: #f44336;
+            --color-shadow: rgba(0, 0, 0, 0.5);
+
+            /* Estilos Generales */
+            --border-radius: 8px;
+            --spacing-unit: 1rem;
+        }
+
+        /* -------------------------------------------------------------------------- */
+        /* CAMBIO A MODO CLARO (Sobreescribiendo variables)                           */
+        /* -------------------------------------------------------------------------- */
+        body.light-mode {
+            --color-background-primary: #f5f5f5; /* Blanco grisáceo */
+            --color-background-secondary: #ffffff; /* Blanco puro */
+            --color-text-primary: #1f1f1f; /* Gris oscuro */
+            --color-text-secondary: #555555; /* Gris medio */
+            --color-accent: #007bff; /* Azul clásico para acentos en claro */
+            --color-success: #28a745;
+            --color-error: #dc3545;
+            --color-shadow: rgba(0, 0, 0, 0.1);
+
+            /* Sobreescribir color de texto en inputs para modo claro */
+            color: var(--color-text-primary);
+            background-color: var(--color-background-primary);
+        }
+
+        body.light-mode #app-header {
+            box-shadow: 0 4px 6px var(--color-shadow);
+        }
+
+        body.light-mode .auth-form input:not([type="submit"]),
+        body.light-mode .auth-form textarea {
+            background-color: #ffffff;
+            border: 1px solid #ccc;
+            color: var(--color-text-primary);
+        }
+
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--color-background-primary);
+            color: var(--color-text-primary);
+            line-height: 1.6;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: var(--spacing-unit);
+        }
+
+        /* -------------------------------------------------------------------------- */
+        /* 1. HEADER & NAVIGATION                                                     */
+        /* -------------------------------------------------------------------------- */
+        #app-header {
+            background-color: var(--color-background-secondary);
+            box-shadow: 0 4px 6px var(--color-shadow);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 2rem;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-content {
+            display: flex;
+            align-items: center;
+        }
+
+        .logo {
+            color: var(--color-accent);
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-right: 2rem;
+        }
+
+        /* Enlaces de Navegación */
+        nav a {
+            color: var(--color-text-secondary);
+            text-decoration: none;
+            font-weight: 600;
+            padding: 0.5rem 1rem;
+            margin: 0 0.5rem;
+            border-radius: var(--border-radius);
+            transition: color 0.2s, background-color 0.2s;
+        }
+
+        nav a:hover {
+            color: var(--color-text-primary);
+            background-color: rgba(255, 255, 255, 0.05);
+        }
+
+        body.light-mode nav a:hover {
+            background-color: rgba(0, 0, 0, 0.05); /* Ligeramente oscuro en modo claro */
+        }
+
+
+        nav a.active {
+            color: var(--color-accent);
+            border-bottom: 2px solid var(--color-accent);
+            background-color: transparent;
+        }
+
+        .user-controls {
+            display: flex;
+            align-items: center;
+        }
+
+        .user-welcome {
+            margin-right: 1rem;
+            font-weight: 400;
+            color: var(--color-text-primary);
+        }
+
+        /* Botón de cambio de tema */
+        #theme-toggle-btn {
+            background: none;
+            border: none;
+            color: var(--color-text-secondary);
+            font-size: 1.25rem;
+            padding: 0.5rem;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: background-color 0.2s, color 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #theme-toggle-btn:hover {
+            color: var(--color-accent);
+            background-color: rgba(255, 255, 255, 0.05);
+        }
+
+        body.light-mode #theme-toggle-btn:hover {
+            background-color: rgba(0, 0, 0, 0.05);
+        }
+
+
+        /* -------------------------------------------------------------------------- */
+        /* 2. BOTONES GENERALES                                                       */
+        /* -------------------------------------------------------------------------- */
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            font-weight: 600;
+            transition: transform 0.1s, box-shadow 0.2s, background-color 0.2s;
+            font-size: 1rem;
+        }
+
+        .btn-primary {
+            background-color: var(--color-accent);
+            color: var(--color-background-primary);
+            box-shadow: 0 4px 10px rgba(255, 110, 64, 0.4);
+        }
+
+        body.light-mode .btn-primary {
+            /* El modo claro tiene un color de acento diferente, usar el mismo patrón de sombra */
+            box-shadow: 0 4px 10px rgba(0, 123, 255, 0.4);
+        }
+
+
+        .btn-primary:hover {
+            background-color: #ff8563; /* Tono más claro */
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(255, 110, 64, 0.6);
+        }
+
+        body.light-mode .btn-primary:hover {
+            background-color: #0069d9;
+            box-shadow: 0 6px 15px rgba(0, 123, 255, 0.6);
+        }
+
+
+        .btn-secondary {
+            background-color: var(--color-background-primary);
+            color: var(--color-accent);
+            border: 1px solid var(--color-accent);
+        }
+
+        .btn-secondary:hover {
+            background-color: var(--color-accent);
+            color: var(--color-background-primary);
+        }
+
+        .btn-link {
+            background: none;
+            color: var(--color-accent);
+            padding: 0.5rem;
+            margin-top: 1rem;
+        }
+
+        .btn-google {
+            background-color: #4285f4; /* Azul de Google */
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            margin-top: 1rem;
+        }
+
+        .btn-google .google-logo {
+            width: 20px;
+            height: 20px;
+            background-color: white;
+            padding: 2px;
+            border-radius: 2px;
+            margin-right: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Deshabilitado */
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        /* -------------------------------------------------------------------------- */
+        /* 3. VISTAS Y LAYOUT                                                         */
+        /* -------------------------------------------------------------------------- */
+
+        .view {
+            padding: 2rem 0;
+        }
+
+        .grid-layout {
+            display: grid;
+            /* Diseño responsivo: 1 columna en móvil, 2 en tablet, 3 o 4 en escritorio */
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 2rem;
+            padding-top: 1.5rem;
+        }
+
+        /* -------------------------------------------------------------------------- */
+        /* 4. TARJETA DE TREN (CATÁLOGO)                                              */
+        /* -------------------------------------------------------------------------- */
+
+        .train-card {
+            background-color: var(--color-background-secondary);
+            border-radius: var(--border-radius);
+            overflow: hidden;
+            box-shadow: 0 6px 15px var(--color-shadow);
+            transition: transform 0.3s, box-shadow 0.3s;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .train-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(255, 110, 64, 0.3);
+        }
+
+        body.light-mode .train-card:hover {
+            box-shadow: 0 10px 25px rgba(0, 123, 255, 0.2);
+        }
+
+        .card-image-container {
+            height: 200px;
+            background-color: #0d0d0d; /* Fondo muy oscuro para placeholders */
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card-image {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            opacity: 0.85;
+            transition: opacity 0.3s;
+        }
+
+        .train-card:hover .card-image {
+            opacity: 1;
+        }
+
+        .card-content {
+            padding: 1.5rem;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .card-title {
+            font-size: 1.4rem;
+            color: var(--color-text-primary);
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+        }
+
+        .card-info {
+            color: var(--color-text-secondary);
+            font-size: 0.9rem;
+            margin-bottom: 1rem;
+        }
+
+        .card-price {
+            font-size: 1.5rem;
+            color: var(--color-accent);
+            font-weight: 700;
+            margin-top: auto; /* Empuja el precio y el stock al fondo */
+            padding-top: 0.5rem;
+        }
+
+        .card-stock {
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-top: 0.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid #333;
+        }
+
+        body.light-mode .card-stock {
+            border-bottom: 1px solid #ddd;
+        }
+
+
+        .stock-available {
+            color: var(--color-success);
+        }
+
+        .stock-low {
+            color: var(--color-error);
+        }
+
+        .stock-unavailable {
+            color: var(--color-text-secondary);
+        }
+
+        /* Controles de la tarjeta */
+        .card-actions {
+            padding-top: 1rem;
+        }
+
+        .buy-button {
+            width: 100%;
+        }
+
+
+        /* -------------------------------------------------------------------------- */
+        /* 5. MODALES Y AUTENTICACIÓN                                                 */
+        /* -------------------------------------------------------------------------- */
+
+        .modal-backdrop {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background-color: var(--color-background-secondary);
+            padding: 2rem;
+            border-radius: var(--border-radius);
+            max-width: 400px;
+            width: 90%;
+            box-shadow: 0 10px 30px var(--color-shadow);
+            position: relative;
+        }
+
+        .auth-card h3 {
+            text-align: center;
+            color: var(--color-accent);
+            margin-bottom: 1.5rem;
+            font-size: 1.75rem;
+        }
+
+        .auth-form input[type="email"],
+        .auth-form input[type="password"],
+        .auth-form input[type="text"],
+        .auth-form textarea {
+            width: 100%;
+            padding: 0.75rem;
+            margin-bottom: 1rem;
+            border: 1px solid #333;
+            border-radius: var(--border-radius);
+            background-color: var(--color-background-primary);
+            color: var(--color-text-primary);
+            font-size: 1rem;
+            transition: border-color 0.2s;
+        }
+
+        .auth-form input:focus,
+        .auth-form textarea:focus {
+            border-color: var(--color-accent);
+            outline: none;
+        }
+
+        .separator {
+            text-align: center;
+            margin: 1rem 0;
+            color: var(--color-text-secondary);
+            position: relative;
+        }
+
+        .separator::before, 
+        .separator::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            width: 40%;
+            height: 1px;
+            background: #333;
+        }
+
+        body.light-mode .separator::before, 
+        body.light-mode .separator::after {
+            background: #ccc;
+        }
+
+
+        .separator::before { 
+            left: 0; 
+        }
+
+        .separator::after { 
+            right: 0; 
+        }
+
+        .close-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: none;
+            border: none;
+            color: var(--color-text-secondary);
+            font-size: 1.5rem;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+
+        .close-btn:hover {
+            color: var(--color-accent);
+        }
+
+        /* Mensajes de Estado */
+        .error-msg, 
+        .success-msg {
+            padding: 0.75rem;
+            margin-bottom: 1rem;
+            border-radius: var(--border-radius);
+            font-weight: 600;
+        }
+
+        .error-msg {
+            background-color: rgba(244, 67, 54, 0.1); /* Rojo tenue */
+            color: var(--color-error);
+        }
+
+        .success-msg {
+            background-color: rgba(76, 175, 80, 0.1); /* Verde tenue */
+            color: var(--color-success);
+        }
+
+        /* -------------------------------------------------------------------------- */
+        /* 6. UTILIDADES & RESPONSIVIDAD                                              */
+        /* -------------------------------------------------------------------------- */
+
+        .hidden {
+            display: none !important;
+        }
+
+        /* Para manejar el cambio de vistas en el SPA */
+        .view:not(.active) {
+            display: none;
+        }
+
+        /* VISTA DE PERFIL */
+        .profile-card {
+            background-color: var(--color-background-secondary);
+            padding: 2rem;
+            border-radius: var(--border-radius);
+            max-width: 600px;
+            margin: 2rem auto;
+            box-shadow: 0 6px 15px var(--color-shadow);
+        }
+        .profile-info p {
+            margin-bottom: 1rem;
+            font-size: 1.1rem;
+        }
+        .profile-info strong {
+            color: var(--color-accent);
+            font-weight: 600;
+            margin-right: 0.5rem;
+        }
+
+        /* Landing Page */
+        .landing-hero {
+            text-align: center;
+            padding: 4rem 0;
+        }
+        .landing-hero h1 {
+            font-size: 3rem;
+            color: var(--color-accent);
+            margin-bottom: 1rem;
+        }
+        .landing-hero p {
+            font-size: 1.25rem;
+            color: var(--color-text-secondary);
+            margin-bottom: 2rem;
+        }
+        .interest-form-container {
+            max-width: 400px;
+            margin: 0 auto;
+            background-color: var(--color-background-secondary);
+            padding: 2rem;
+            border-radius: var(--border-radius);
+            box-shadow: 0 4px 10px var(--color-shadow);
+        }
+        .interest-form-container h4 {
+            margin-bottom: 1.5rem;
+            color: var(--color-text-primary);
+        }
+
+        /* ------------------------------------------- */
+        /* MEDIA QUERIES (Móvil)                       */
+        /* ------------------------------------------- */
+        @media (max-width: 768px) {
+            #app-header {
+                flex-direction: column;
+                align-items: flex-start;
+                padding: 1rem;
+            }
+
+            .header-content {
+                margin-bottom: 0.75rem;
+                width: 100%;
+                justify-content: space-between;
+            }
+
+            .user-controls {
+                width: 100%;
+                justify-content: space-between;
+            }
+
+            .logo {
+                margin-right: 1rem;
+                font-size: 1.5rem;
+            }
+
+            nav {
+                display: flex;
+                width: 100%;
+                justify-content: space-around;
+                margin-top: 0.5rem;
+            }
+            
+            nav a {
+                flex-grow: 1;
+                text-align: center;
+                margin: 0 0.2rem;
+                padding: 0.5rem;
+            }
+
+            .container {
+                padding: 0.5rem;
+            }
+
+            .modal-content {
+                width: 95%;
+                margin: 1rem;
+            }
+
+            .landing-hero h1 {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body class="dark-mode">
+
+    <!-- ---------------------------------------------------- -->
+    <!-- ENCABEZADO Y NAVEGACIÓN (Sticky Header) -->
+    <!-- ---------------------------------------------------- -->
     <header id="app-header">
         <div class="header-content">
-            <h1 class="logo flex items-center space-x-2">
-                <i class="fas fa-train text-3xl"></i>
-                <span>RailExpress Store</span>
-            </h1>
-            <nav id="app-nav" class="flex items-center space-x-2">
-                <!-- La Landing Page es el Home. Siempre visible. -->
-                <a href="#home" class="nav-link active" data-view="landing-view">Inicio</a> 
-                
-                <!-- Botón de Catálogo (Tu "Tienda") (Solo visible si está logueado) -->
-                <a href="#catalog" class="nav-link hidden" data-view="catalog-view" id="nav-catalog">
-                    <i class="fas fa-box-open mr-1"></i>Catálogo Exclusivo
-                </a>
-                <a href="#profile" class="nav-link hidden" data-view="info-view" id="nav-profile">
-                    <i class="fas fa-user-circle mr-1"></i>Mi Perfil
-                </a>
+            <span class="logo">RailCollect</span>
+            <nav>
+                <a href="#" class="nav-link" data-view="catalog-view" id="nav-catalog">Catálogo</a>
+                <a href="#" class="nav-link hidden" data-view="profile-view" id="nav-profile">Mi Perfil</a>
             </nav>
-            
-            <div id="auth-controls" class="user-controls flex items-center space-x-3">
-                 <!-- Botón de Modo Oscuro/Claro -->
-                <button id="theme-toggle-btn" class="p-2 rounded-full text-gray-600 hover:bg-gray-100 transition duration-150 dark:text-gray-300 dark:hover:bg-gray-700">
-                    <i id="theme-icon" class="fas fa-sun text-xl"></i>
-                </button>
+        </div>
+        
+        <div class="user-controls">
+            <!-- Texto de Bienvenida, visible si está logueado -->
+            <span id="user-display" class="user-welcome hidden"></span>
 
-                <span id="user-display" class="user-welcome hidden text-sm font-medium text-blue-600 truncate max-w-[100px] sm:max-w-none">Hola, Coleccionista</span>
-                
-                <button id="show-login-btn" class="btn btn-primary text-sm whitespace-nowrap">
-                    <i class="fas fa-sign-in-alt mr-1"></i>Entrar
-                </button>
-                
-                <button id="logout-btn" class="btn btn-secondary hidden text-sm whitespace-nowrap">
-                    <i class="fas fa-sign-out-alt mr-1"></i>Salir
-                </button>
-            </div>
+            <!-- Botón de Login, visible si NO está logueado -->
+            <button id="show-login-btn" class="btn btn-secondary" style="margin-right: 1rem;">Iniciar Sesión</button>
+            
+            <!-- Botón de Logout, visible si está logueado -->
+            <button id="logout-btn" class="btn btn-secondary hidden" style="margin-right: 1rem;">Cerrar Sesión</button>
+
+            <!-- Botón de Tema (Icono) -->
+            <button id="theme-toggle-btn" title="Cambiar Tema">
+                <!-- Icono de luna por defecto (Dark Mode) -->
+                <i class="fas fa-moon"></i> 
+            </button>
         </div>
     </header>
 
-    <!-- ----------------------------------------------------- -->
-    <!-- 2. CONTENIDO PRINCIPAL (Container para las "páginas") -->
-    <!-- ----------------------------------------------------- -->
-    <main id="main-content" class="max-w-7xl mx-auto p-4 pt-8">
-        
-        <!-- VISTA 0: LANDING PAGE (PÚBLICA Y ACTIVA POR DEFECTO) -->
+    <!-- ---------------------------------------------------- -->
+    <!-- CONTENIDO PRINCIPAL (VISTAS SPA) -->
+    <!-- ---------------------------------------------------- -->
+    <main class="container">
+        <!-- VISTA DE ATERRIZAJE (LANDING PAGE) - Por defecto para anónimos -->
         <section id="landing-view" class="view active">
-            <div class="landing-content max-w-4xl mx-auto text-center">
-                <h1 class="text-6xl font-extrabold mb-4 text-blue-600 pt-8">
-                    Bienvenido a Trenes Store
-                </h1>
-                <p class="subtitle text-xl mb-12 text-gray-600 dark:text-gray-400">
-                    La colección más selecta de modelos de trenes a escala. Regístrate o inicia sesión para acceder al catálogo completo.
-                </p>
+            <div class="landing-hero">
+                <h1>Tu Colección de Trenes Modelo Comienza Aquí.</h1>
+                <p>Explora un catálogo exclusivo de modelos a escala. Regístrate o inicia sesión para acceder a precios y stock.</p>
                 
-                <!-- Formulario de Captura de Leads (Público) -->
-                <div class="lead-form-container auth-card max-w-2xl mx-auto p-6 mt-8 border-t-4 border-blue-600">
-                    <h3 class="text-2xl font-semibold mb-3">¿Interesado en novedades y ofertas?</h3>
-                    <p class="mb-4 text-gray-500 dark:text-gray-400">Déjanos tu correo y te avisaremos sobre las próximas colecciones.</p>
-                    
-                    <!-- El formulario ya no usa FormsSubmit directamente, ahora usa JS (leads.js) -->
-                    <form id="public-interest-form" class="auth-form space-y-3">
-                        <input type="text" id="public-name-input" name="name" placeholder="Tu Nombre" required>
-                        <input type="email" id="public-email-input" name="email" placeholder="Tu Correo Electrónico" required>
-                        <textarea 
-                            id="public-message-input" 
-                            name="message" 
-                            placeholder="Escribe tu mensaje o pregunta aquí (opcional)" 
-                            rows="4"
-                        ></textarea>
-                        <button type="submit" id="lead-submit-btn" class="btn btn-primary w-full mt-2">
-                            <i class="fas fa-envelope mr-1"></i>¡Me Interesa!
-                        </button>
-                        <div id="public-form-message" class="success-msg hidden"></div>
-                        <div id="public-form-error" class="error-msg hidden"></div>
+                <div class="interest-form-container">
+                    <h4>¿Interesado? Déjanos tu contacto</h4>
+                    <form id="public-interest-form">
+                        <input type="text" id="interest-name" placeholder="Tu Nombre" required>
+                        <input type="email" id="interest-email" placeholder="Tu Email" required>
+                        <textarea id="interest-message" placeholder="¿Qué tipo de trenes te interesan?" rows="3"></textarea>
+                        <button type="submit" class="btn btn-primary buy-button" id="submit-interest-btn">Enviar Interés</button>
+                        <p id="interest-status-msg" class="success-msg hidden" style="margin-top: 1rem;"></p>
                     </form>
                 </div>
             </div>
         </section>
 
-
-        <!-- VISTA 1: CATÁLOGO DE TRENES (PROTEGIDA) -->
+        <!-- VISTA DE CATÁLOGO (PROTEGIDA) -->
         <section id="catalog-view" class="view hidden">
-            <h2 class="text-4xl font-bold mb-4 text-blue-600">Catálogo Exclusivo</h2>
-            <p class="mb-6 text-gray-600 dark:text-gray-400">Sólo para usuarios registrados: Modelos de Edición Limitada.</p>
-            <div id="catalog-container" class="grid-layout">
-                <p id="catalog-loading" class="text-xl text-gray-500 col-span-full text-center">Cargando catálogo...</p>
+            <h2>Catálogo Exclusivo de Modelos</h2>
+            <div id="train-catalog" class="grid-layout">
+                <!-- Las tarjetas de tren se inyectarán aquí dinámicamente -->
+                <p id="catalog-loading">Cargando modelos de trenes...</p>
             </div>
         </section>
 
-        <!-- VISTA 2: INFORMACIÓN DEL USUARIO / PERFIL (PROTEGIDA) -->
-        <section id="info-view" class="view hidden">
-            <div class="auth-card max-w-lg mx-auto">
-                <h2 class="text-3xl font-bold mb-6 text-blue-600">Información de Mi Perfil</h2>
-                <div id="profile-details" class="space-y-3 text-lg">
-                    <p><strong>Email:</strong> <span id="profile-email" class="font-medium">Cargando...</span></p>
-                    <p><strong>ID de Usuario:</strong> <span id="profile-uid" class="font-mono text-xs bg-gray-200 dark:bg-gray-700 p-1 rounded break-all">Cargando...</span></p>
-                    <p><strong>Fecha de Creación:</strong> <span id="profile-date">Cargando...</span></p>
+        <!-- VISTA DE PERFIL (PROTEGIDA) -->
+        <section id="profile-view" class="view hidden">
+            <h2>Mi Perfil de Coleccionista</h2>
+            <div class="profile-card">
+                <div class="profile-info">
+                    <p><strong>ID de Usuario:</strong> <span id="user-id-display">N/A</span></p>
+                    <p><strong>Email:</strong> <span id="profile-email">N/A</span></p>
+                    <p><strong>Miembro desde:</strong> <span id="profile-date">N/A</span></p>
                 </div>
-                <p class="mt-8 text-sm text-gray-500 dark:text-gray-400">Esta información se extrae de tu cuenta de Firebase.</p>
             </div>
         </section>
-
     </main>
-    
-    <!-- 3. MODAL DE LOGIN/REGISTRO -->
+
+    <!-- ---------------------------------------------------- -->
+    <!-- MODAL DE AUTENTICACIÓN -->
+    <!-- ---------------------------------------------------- -->
     <div id="login-modal-container" class="modal-backdrop hidden">
-        <div id="login-modal" class="modal-content auth-card">
-            <!-- Botón de cierre -->
-            <button class="close-btn absolute top-4 right-4 text-3xl text-gray-400 hover:text-blue-600" id="close-login-modal">&times;</button>
-            <h3 id="auth-title" class="text-3xl font-extrabold text-center mb-6 text-blue-600">Inicia Sesión</h3>
+        <div class="modal-content auth-card">
+            <button id="close-login-modal" class="close-btn">&times;</button>
+            <h3 id="auth-title">Inicia Sesión para Acceder al Catálogo</h3>
 
-            <div id="auth-error-message" class="error-msg hidden"></div>
+            <!-- Mensaje de error/éxito -->
+            <p id="error-message" class="error-msg hidden"></p>
 
-            <form id="auth-form" class="auth-form space-y-4">
+            <form id="auth-form">
                 <input type="email" id="email-input" placeholder="Correo Electrónico" required>
-                <input type="password" id="password-input" placeholder="Contraseña (mín. 6)" required minlength="6">
-
-                <button type="submit" id="auth-submit-btn" class="btn btn-primary w-full mt-4 text-lg">
-                    <i class="fas fa-lock mr-2"></i>
-                    <span id="auth-mode-text">Iniciar Sesión</span>
-                </button>
+                <input type="password" id="password-input" placeholder="Contraseña (mín. 6 caracteres)" required>
+                <button type="submit" class="btn btn-primary buy-button" id="auth-submit-btn">Iniciar Sesión</button>
             </form>
 
-            <button id="toggle-mode-btn" class="btn btn-link text-center w-full mt-4">
-                ¿No tienes cuenta? <span class="font-bold">Regístrate</span>
+            <p class="separator">o</p>
+
+            <button type="button" class="btn btn-google" id="google-login-btn">
+                <span class="google-logo">
+                    <svg viewBox="0 0 48 48" width="18px" height="18px"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.56 30.49 0 24 0 14.62 0 6.51 5.38 2.56 13.06l7.98 6.19C12.43 14.65 17.51 9.5 24 9.5z"></path><path fill="#4285F4" d="M46.9 24.54c0-.98-.08-1.85-.22-2.72H24v5.1h12.51c-.56 2.92-2.22 5.15-4.49 6.64l6.85 5.34c4.01-3.7 6.36-9.28 6.36-16.36z"></path><path fill="#FBBC05" d="M9.98 29.58c-.59-1.48-.93-3.08-.93-4.58s.34-3.09.93-4.58L2.0 13.06C-.03 17.02-.51 21.6 2.56 26.96l7.42 2.62z"></path><path fill="#34A853" d="M24 48c6.9 0 12.58-2.31 16.53-6.27l-6.85-5.34c-2.33 1.5-4.99 2.5-7.68 2.5-7.46 0-13.78-5.37-16.14-12.87L2.56 34.93C6.51 42.62 14.62 48 24 48z"></path><path fill="none" d="M0 0h48v48H0z"></path></svg>
+                </span>
+                Continuar con Google
             </button>
-            
-            <p class="text-center text-sm text-gray-400 mt-2">
-                Tu ID de Usuario es importante para nosotros.
-            </p>
+
+            <button type="button" class="btn btn-link" id="toggle-mode-btn">
+                ¿No tienes cuenta? Regístrate
+            </button>
         </div>
     </div>
 
-    <!-- 4. MODAL DE TOAST (Reemplazo de Alert) -->
-    <div id="toast-container" class="fixed bottom-4 right-4 space-y-2 z-50"></div>
+
+    <!-- ---------------------------------------------------- -->
+    <!-- LÓGICA DE FIREBASE Y SPA (auth.js y Stubs) -->
+    <!-- ---------------------------------------------------- -->
+    <script type="module">
+        // Importaciones de Firebase
+        import {
+            initializeApp
+        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import {
+            browserLocalPersistence,
+            createUserWithEmailAndPassword,
+            getAuth,
+            GoogleAuthProvider,
+            onAuthStateChanged,
+            setPersistence,
+            signInAnonymously,
+            signInWithCustomToken,
+            signInWithEmailAndPassword,
+            signInWithPopup,
+            signOut
+        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import {
+            getFirestore,
+            collection,
+            addDoc
+        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
 
-    <!-- --------------------------------- -->
-    <!-- FIREBASE AND JAVASCRIPT IMPORTS -->
-    <!-- --------------------------------- -->
-    
-    <!-- Importaciones de Firebase Modular -->
-    <script type="module" src="https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js"></script>
-    <script type="module" src="https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js"></script>
-    <script type="module" src="https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js"></script>
+        // ------------------------------------------------------
+        // 1. LÓGICA DE TEMAS Y MOCK DATA (STUBS REQUERIDOS POR auth.js)
+        // ------------------------------------------------------
+        const themeToggleBtn = document.getElementById('theme-toggle-btn');
+        const themeIcon = themeToggleBtn.querySelector('i');
+        let currentTheme = 'dark-mode';
 
-    <!-- Scripts de la Aplicación (Rutas corregidas) -->
-    <script src="app/utils.js" type="module"></script>     <!-- Nuevo archivo para utils como toggleTheme y Toast -->
-    <script src="app/firestore.js" type="module"></script> <!-- Aquí estará la lógica del Catálogo -->
-    <script src="app/leads.js" type="module"></script>      <!-- Lógica del formulario de leads -->
-    <script src="app/auth.js" type="module"></script>       <!-- Lógica de autenticación -->
-    <script src="app/app.js" type="module"></script>        <!-- Lógica principal de inicialización y navegación -->
-    
+        // Función de Mock para generar una tarjeta de tren
+        function createTrainCard(train) {
+            const stockClass = train.stock > 10 ? 'stock-available' : train.stock > 0 ? 'stock-low' : 'stock-unavailable';
+            const stockText = train.stock > 0 ? `${train.stock} en stock` : 'Agotado';
+            const buttonDisabled = train.stock === 0 ? 'disabled' : '';
+
+            // Usamos un placeholder de imagen genérico
+            const imageUrl = `https://placehold.co/400x200/ff6e40/ffffff?text=${train.name.replace(/\s/g, '+')}`;
+
+            return `
+                <div class="train-card">
+                    <div class="card-image-container">
+                        <img src="${imageUrl}" class="card-image" alt="Modelo de tren ${train.name}" loading="lazy">
+                    </div>
+                    <div class="card-content">
+                        <h4 class="card-title">${train.name}</h4>
+                        <p class="card-info">${train.scale} - ${train.year}</p>
+                        <p class="card-price">$${train.price.toFixed(2)}</p>
+                        <p class="card-stock">Estado: <span class="${stockClass}">${stockText}</span></p>
+                        <div class="card-actions">
+                            <button class="btn btn-primary buy-button" data-train-id="${train.id}" ${buttonDisabled}>Comprar Ahora</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Datos de catálogo de Mock
+        const mockCatalog = [{
+            id: 'T001',
+            name: 'Locomotora Clásica Serie 50',
+            scale: 'H0',
+            year: 1955,
+            price: 189.99,
+            stock: 15
+        }, {
+            id: 'T002',
+            name: 'Tren de Alta Velocidad Shinkansen',
+            scale: 'N',
+            year: 2020,
+            price: 349.50,
+            stock: 3
+        }, {
+            id: 'T003',
+            name: 'Vagón de Carga Cisterna FQ-12',
+            scale: 'Z',
+            year: 1988,
+            price: 45.00,
+            stock: 0
+        }, {
+            id: 'T004',
+            name: 'Set Inicial de Pasajeros Euro',
+            scale: 'TT',
+            year: 2023,
+            price: 99.99,
+            stock: 22
+        }, ];
+
+        /**
+         * STUB: Simula la carga del catálogo (solo se ejecuta si está logueado)
+         */
+        window.loadCatalogAndListen = function(userId, appId) {
+            console.log(`[CATALOG] Invocando carga de catálogo para App ID: ${appId}`);
+            const catalogContainer = document.getElementById('train-catalog');
+            const catalogLoading = document.getElementById('catalog-loading');
+            
+            if (catalogLoading) catalogLoading.remove(); // Ocultar mensaje de carga
+
+            if (catalogContainer.children.length === 0) {
+                // Renderizar las tarjetas de mock
+                const htmlContent = mockCatalog.map(createTrainCard).join('');
+                catalogContainer.innerHTML = htmlContent;
+                document.getElementById('user-id-display').textContent = userId;
+            }
+        };
+
+        /**
+         * STUB: Simula la gestión de leads del formulario público (para anónimos)
+         */
+        window.initPublicInterestForm = function(anonUserId, appId) {
+            console.log(`[LEADS] Inicializando formulario de interés público para ID anónimo: ${anonUserId}`);
+            const form = document.getElementById('public-interest-form');
+            const statusMsg = document.getElementById('interest-status-msg');
+
+            if (!form) return;
+
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                statusMsg.classList.add('hidden');
+                
+                const name = document.getElementById('interest-name').value;
+                const email = document.getElementById('interest-email').value;
+                const message = document.getElementById('interest-message').value;
+
+                try {
+                    // Simulación de envío a Firestore
+                    const db = getFirestore(initializeApp(JSON.parse(__firebase_config)));
+                    const leadsCollectionRef = collection(db, `/artifacts/${appId}/public/data/leads`);
+                    
+                    await addDoc(leadsCollectionRef, {
+                        name,
+                        email,
+                        message,
+                        anonUserId,
+                        timestamp: new Date().toISOString(),
+                        source: 'landing_page_form'
+                    });
+
+                    statusMsg.textContent = '¡Gracias! Hemos recibido tu interés y te contactaremos pronto.';
+                    statusMsg.classList.remove('hidden');
+                    statusMsg.classList.add('success-msg');
+                    form.reset();
+
+                } catch (error) {
+                    console.error("Error al guardar lead en Firestore:", error);
+                    statusMsg.textContent = 'Hubo un error al enviar tu información. Intenta de nuevo más tarde.';
+                    statusMsg.classList.remove('hidden');
+                    statusMsg.classList.add('error-msg');
+                }
+            });
+        };
+
+        /**
+         * STUB: Simula la inicialización de listeners de interés para usuarios logueados
+         */
+        window.initInterestListeners = function(user, appId) {
+            console.log(`[LEADS] Inicializando listeners para usuario logueado: ${user.uid}`);
+            // Aquí iría la lógica para escuchar carritos de compra, favoritos, etc.
+        };
+
+
+        // ------------------------------------------------------
+        // 2. LÓGICA DE CAMBIO DE TEMA
+        // ------------------------------------------------------
+        function toggleTheme() {
+            if (document.body.classList.contains('light-mode')) {
+                document.body.classList.remove('light-mode');
+                document.body.classList.add('dark-mode');
+                themeIcon.classList.remove('fa-sun');
+                themeIcon.classList.add('fa-moon');
+                currentTheme = 'dark-mode';
+            } else {
+                document.body.classList.remove('dark-mode');
+                document.body.classList.add('light-mode');
+                themeIcon.classList.remove('fa-moon');
+                themeIcon.classList.add('fa-sun');
+                currentTheme = 'light-mode';
+            }
+        }
+
+        themeToggleBtn.addEventListener('click', toggleTheme);
+
+        
+        // ------------------------------------------------------
+        // 3. CÓDIGO DE FIREBASE AUTH (auth.js proporcionado por el usuario)
+        // ------------------------------------------------------
+
+        // --- DECLARACIÓN DE VARIABLES GLOBALES DE FIREBASE ---
+        let auth;
+        let db;
+        let appId;
+        let userId; // El ID del usuario actual
+
+        // Referencias a elementos del DOM
+        const loginModalContainer = document.getElementById('login-modal-container');
+        const authForm = document.getElementById('auth-form');
+        const emailInput = document.getElementById('email-input');
+        const passwordInput = document.getElementById('password-input');
+        const authSubmitBtn = document.getElementById('auth-submit-btn');
+        const authTitle = document.getElementById('auth-title');
+        // NOTA: 'theme-toggle-btn' se usa para el tema, 'toggle-mode-btn' para cambiar entre login/registro
+        const toggleModeBtn = document.getElementById('toggle-mode-btn'); 
+        const logoutBtn = document.getElementById('logout-btn');
+        const googleLoginBtn = document.getElementById('google-login-btn');
+        const errorMessage = document.getElementById('error-message');
+        const userDisplay = document.getElementById('user-display');
+        const profileEmail = document.getElementById('profile-email');
+        const profileDate = document.getElementById('profile-date');
+        const showLoginBtn = document.getElementById('show-login-btn');
+        const closeLoginModalBtn = document.getElementById('close-login-modal');
+
+        // Elementos de Navegación Dinámicos
+        const navCatalog = document.getElementById('nav-catalog');
+        const navProfile = document.getElementById('nav-profile');
+
+
+        // Variable de estado: true para Login, false para Registro
+        let isLoginMode = true;
+
+        /**
+         * Muestra un mensaje de error o éxito en el modal de autenticación.
+         */
+        function displayAuthMessage(msg, isError = true) {
+            errorMessage.textContent = msg;
+            errorMessage.classList.remove('hidden', 'error-msg', 'success-msg');
+            errorMessage.classList.add(isError ? 'error-msg' : 'success-msg');
+        }
+
+        /**
+         * Maneja el cambio de modo entre Iniciar Sesión y Registrarse.
+         */
+        function toggleAuthMode() {
+            isLoginMode = !isLoginMode;
+            if (isLoginMode) {
+                authTitle.textContent = 'Inicia Sesión para Acceder al Catálogo';
+                authSubmitBtn.textContent = 'Iniciar Sesión';
+                toggleModeBtn.textContent = '¿No tienes cuenta? Regístrate';
+            } else {
+                authTitle.textContent = 'Crea tu Cuenta de Coleccionista';
+                authSubmitBtn.textContent = 'Registrarse';
+                toggleModeBtn.textContent = '¿Ya tienes cuenta? Inicia Sesión';
+            }
+            // Limpia mensajes y campos al cambiar
+            errorMessage.classList.add('hidden');
+            emailInput.value = '';
+            passwordInput.value = '';
+        }
+
+        /**
+         * Muestra/Oculta el modal de Login.
+         */
+        function toggleLoginModal(show = true) {
+            if (show) {
+                // Al abrir, siempre va al modo Login por defecto
+                isLoginMode = true;
+                toggleAuthMode(); 
+                loginModalContainer.classList.remove('hidden');
+            } else {
+                loginModalContainer.classList.add('hidden');
+            }
+        }
+
+        /**
+         * Dibuja la vista correcta y actualiza la clase 'active' de navegación.
+         * @param {string} viewId - El ID de la sección a mostrar (ej: 'catalog-view').
+         */
+        function navigateTo(viewId) {
+            // 1. Ocultar todas las vistas
+            document.querySelectorAll('.view').forEach(view => {
+                view.classList.add('hidden');
+                view.classList.remove('active');
+            });
+
+            // 2. Mostrar la vista solicitada
+            const targetView = document.getElementById(viewId);
+            if (targetView) {
+                targetView.classList.remove('hidden');
+                targetView.classList.add('active');
+            }
+
+            // 3. Actualizar enlaces de navegación
+            document.querySelectorAll('.nav-link').forEach(link => {
+                link.classList.remove('active'); // Usamos la clase 'active' del CSS
+                if (link.getAttribute('data-view') === viewId) {
+                    link.classList.add('active'); 
+                }
+            });
+        }
+        window.navigateTo = navigateTo; // Hacemos global para uso en el HTML
+
+        /**
+         * Maneja el estado de la aplicación (logueado vs. deslogueado)
+         * @param {firebase.User} user - El objeto de usuario de Firebase.
+         */
+        function handleUserState(user) {
+            // Definir userId globalmente (sea real o anónimo)
+            userId = user?.uid || crypto.randomUUID();
+            window.userId = userId;
+            window.appId = appId; // Aseguramos que appId también sea global
+
+            if (user && user.isAnonymous === false) {
+                // --- ESTADO LOGUEADO (Usuario Real) ---
+                console.log('Usuario autenticado:', user.uid);
+                
+                // Ocultar modal si estaba abierto y mostrar controles
+                toggleLoginModal(false); 
+                userDisplay.classList.remove('hidden');
+                logoutBtn.classList.remove('hidden');
+                showLoginBtn.classList.add('hidden');
+                navCatalog.classList.remove('hidden');
+                navProfile.classList.remove('hidden');
+
+                // Mostrar nombre de usuario
+                const displayName = user.displayName || user.email.split('@')[0];
+                userDisplay.textContent = `Hola, ${displayName}`;
+
+                // Llenar detalles del perfil
+                profileEmail.textContent = user.email;
+                profileDate.textContent = user.metadata.creationTime ? 
+                    new Date(user.metadata.creationTime).toLocaleDateString('es-ES') : 'N/A';
+                document.getElementById('user-id-display').textContent = user.uid; // Mostrar el UID
+
+                
+                // Cargar Catálogo (Ahora pasamos userId y appId)
+                if (typeof window.loadCatalogAndListen === 'function') {
+                    console.log("[AUTH] ✅ Invocando carga de Catálogo para userId y appId.");
+                    // PASAMOS LOS PARÁMETROS CRÍTICOS
+                    window.loadCatalogAndListen(userId, appId); 
+                }
+
+                // Inicializar listeners de Leads (asume que esta función existe en app/leads.js)
+                if (typeof window.initInterestListeners === 'function') {
+                    // PASAMOS LOS PARÁMETROS CRÍTICOS
+                    window.initInterestListeners(user, appId);
+                }
+
+                // Redirigir al catálogo después del login
+                navigateTo('catalog-view');
+
+            } else {
+                // --- ESTADO DESLOGUEADO O ANÓNIMO (Público) ---
+                console.log('Usuario deslogueado/anónimo. Mostrando Landing Page.');
+                
+                // Ocultar elementos protegidos
+                userDisplay.classList.add('hidden');
+                logoutBtn.classList.add('hidden');
+                showLoginBtn.classList.remove('hidden'); // Mostrar botón de Login
+                navCatalog.classList.add('hidden'); // Ocultar Catálogo
+                navProfile.classList.add('hidden'); // Ocultar Perfil
+
+                // Mostrar la Landing Page y asegurar la navegación
+                navigateTo('landing-view');
+
+                // Inicializar el formulario de interés público
+                if (typeof window.initPublicInterestForm === 'function') {
+                    // PASAMOS LOS PARÁMETROS CRÍTICOS
+                    window.initPublicInterestForm(userId, appId);
+                }
+            }
+        }
+
+
+        /**
+         * -----------------------------------------------------
+         * EVENT LISTENERS GLOBALES (CON LAS FUNCIONES MODERNAS)
+         * -----------------------------------------------------
+         */
+
+        // 2. Manejo del formulario (Login/Registro)
+        authForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (!auth) return;
+            
+            const email = emailInput.value.trim();
+            const password = passwordInput.value.trim();
+
+            if (password.length < 6) {
+                displayAuthMessage("La contraseña debe tener al menos 6 caracteres.", true);
+                return;
+            }
+            
+            try {
+                errorMessage.classList.add('hidden'); 
+
+                if (isLoginMode) {
+                    // SINTAXIS MODERNA: signInWithEmailAndPassword(auth, email, password)
+                    await signInWithEmailAndPassword(auth, email, password);
+                } else {
+                    // SINTAXIS MODERNA: createUserWithEmailAndPassword(auth, email, password)
+                    await createUserWithEmailAndPassword(auth, email, password);
+                    // Si el registro es exitoso, onAuthStateChanged se dispara
+                }
+                toggleLoginModal(false); 
+            } catch (error) {
+                console.error("Error de autenticación:", error.code, error.message);
+                let userMessage = error.message;
+                if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found') {
+                    userMessage = 'Credenciales incorrectas (email o contraseña).';
+                } else if (error.code === 'auth/email-already-in-use') {
+                    userMessage = 'Este email ya está registrado.';
+                }
+                displayAuthMessage(userMessage, true);
+            }
+        });
+
+        // 3. Botón de Logout
+        logoutBtn.addEventListener('click', async () => {
+            if (!auth) return;
+            try {
+                await signOut(auth);
+            } catch (error) {
+                console.error("Error al cerrar sesión:", error);
+            }
+        });
+
+        // 4. Botón de cambio de modo (Login <-> Registro)
+        toggleModeBtn.addEventListener('click', toggleAuthMode);
+
+        // 5. Botón de Login con Google (CORREGIDO)
+        googleLoginBtn.addEventListener('click', async () => {
+            if (!auth) return;
+            // La variable GoogleAuthProvider DEBE ser importada y se inicializa con new
+            const provider = new GoogleAuthProvider(); 
+            try {
+                // SINTAXIS MODERNA: signInWithPopup(auth, provider)
+                await signInWithPopup(auth, provider); 
+            } catch (error) {
+                console.error("Error de Google Auth:", error);
+                if (error.code !== 'auth/popup-closed-by-user') {
+                    displayAuthMessage("Fallo la autenticación con Google. Intenta de nuevo.", true);
+                }
+            }
+        });
+
+        // 6. Botones de Modal (Mostrar/Cerrar)
+        showLoginBtn.addEventListener('click', () => toggleLoginModal(true));
+        closeLoginModalBtn.addEventListener('click', () => toggleLoginModal(false));
+
+        // Clic fuera del modal para cerrarlo
+        loginModalContainer.addEventListener('click', (e) => {
+            if (e.target === loginModalContainer) {
+                toggleLoginModal(false);
+            }
+        });
+
+
+        /**
+         * -----------------------------------------------------
+         * EVENT LISTENERS DE NAVEGACIÓN (SPA)
+         * -----------------------------------------------------
+         */
+        document.querySelectorAll('.nav-link').forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                const viewId = e.target.getAttribute('data-view');
+                // Solo navega si la vista existe y la sección no está oculta (para elementos protegidos)
+                if (viewId && !e.target.classList.contains('hidden')) {
+                    navigateTo(viewId);
+                }
+            });
+        });
+
+
+        /**
+         * -----------------------------------------------------
+         * INICIALIZACIÓN DE FIREBASE (AÑADIDO)
+         * -----------------------------------------------------
+         */
+        async function initializeFirebase() {
+            if (typeof __firebase_config === 'undefined' || !__firebase_config) {
+                console.error("FATAL ERROR: __firebase_config no está definido o es nulo.");
+                return;
+            }
+
+            try {
+                const firebaseConfig = JSON.parse(__firebase_config);
+                appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+
+                const app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                auth = getAuth(app);
+                
+                // 1. Configurar persistencia
+                await setPersistence(auth, browserLocalPersistence);
+
+                // 2. Obtener token de seguridad
+                const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+                
+                // 3. Iniciar el Oyente de Estado de Sesión (Guardián de Acceso)
+                // ESTA ES LA ÚNICA FUNCIÓN QUE DEBE CORRER INMEDIATAMENTE
+                onAuthStateChanged(auth, handleUserState);
+
+                // 4. Autenticación Inicial (si no hay un usuario actual, iniciar con token o anónimamente)
+                if (!auth.currentUser) {
+                    if (initialAuthToken) {
+                        await signInWithCustomToken(auth, initialAuthToken);
+                    } else {
+                        await signInAnonymously(auth); 
+                    }
+                }
+                
+            } catch (error) {
+                console.error("Error al inicializar Firebase (configuración o auth):", error);
+                displayAuthMessage("Error de conexión al servidor. Intenta recargar o contacta soporte.", true);
+            }
+        }
+
+        // Inicializar al cargar la ventana
+        window.addEventListener('load', initializeFirebase);
+    </script>
 </body>
 </html>
