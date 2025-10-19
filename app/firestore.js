@@ -6,8 +6,7 @@ const requestsListContainer = document.getElementById('requests-list');
 const productModal = document.getElementById('product-modal-backdrop');
 const productModalContent = document.querySelector('#product-modal-backdrop .modal-content');
 
-// ** ID DEL PROYECTO DE FIREBASE OBTENIDO DEL USUARIO **
-// Esta variable ya no se usa para las rutas de colección, pero se mantiene por si se necesita para otros fines
+// La variable 'appId' ya no se usa para las rutas de colección, pero se mantiene para la lógica de leads.
 const YOUR_FIREBASE_PROJECT_ID = 'extension-84b64'; 
 const appId = typeof __app_id !== 'undefined' ? __app_id : YOUR_FIREBASE_PROJECT_ID;
 window.appId = appId; 
@@ -48,13 +47,29 @@ function groupTrainsByType(trains) {
 }
 
 /**
+ * Obtiene el título principal del tren, usando Marca y Número si Modelo no está.
+ * @param {object} train - Objeto de datos del tren.
+ * @returns {string} El título a mostrar.
+ */
+function getTrainTitle(train) {
+    if (train.Modelo && train.Modelo.trim() !== '') {
+        return train.Modelo;
+    }
+    // Usar Marca y Número si Modelo está vacío o no existe (según tu DB)
+    return `${train.Marca || 'Marca Desconocida'} N° ${train.Número || 'N/A'}`;
+}
+
+
+/**
  * Muestra el modal de detalle de un producto.
  * @param {object} train - Datos del tren a mostrar.
  */
 function showProductModal(train) {
+    const title = getTrainTitle(train);
+    
     // 1. Crear el contenido HTML del modal (Incluyendo el contenedor de mensajes)
     productModalContent.innerHTML = `
-        <h2 class="text-3xl font-bold text-gray-800 dark:text-white mb-4">${train.Modelo}</h2>
+        <h2 class="text-3xl font-bold text-gray-800 dark:text-white mb-4">${title}</h2>
         <button id="close-modal-x" class="absolute top-3 right-3 text-4xl text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-white">&times;</button>
         
         <div id="modal-feedback-message" class="hidden p-3 mb-4 rounded-lg text-white text-center font-semibold"></div>
@@ -63,13 +78,13 @@ function showProductModal(train) {
             <div class="md:w-1/2">
                 <img src="${train.ImagenURL || 'https://placehold.co/500x300/4F46E5/FFFFFF?text=IMAGEN+NO+DISPONIBLE'}" 
                     onerror="this.onerror=null;this.src='https://placehold.co/500x300/4F46E5/FFFFFF?text=IMAGEN+NO+DISPONIBLE';"
-                    alt="Imagen de ${train.Modelo}" 
+                    alt="Imagen de ${title}" 
                     class="w-full h-auto object-cover rounded-lg shadow-lg mb-4">
             </div>
             <div class="md:w-1/2 space-y-3 text-gray-700 dark:text-gray-300">
-                <!-- Información Técnica y de Fabricación -->
+                <!-- Información Técnica y de Fabricación (Usando los nombres de campo EXACTOS de tu DB) -->
                 <p><strong>Marca:</strong> ${train.Marca || 'N/A'}</p>
-                <p><strong>Número de Modelo:</strong> ${train.Numero || 'N/A'}</p>
+                <p><strong>Número de Modelo:</strong> ${train.Número || 'N/A'}</p>
                 <p><strong>Tipo de Producto:</strong> ${train.Tipo || 'N/A'}</p>
                 <p><strong>Línea:</strong> ${train.Línea || 'N/A'}</p>
                 <p><strong>País de Origen:</strong> ${train.País || 'N/A'}</p>
@@ -108,15 +123,14 @@ function showProductModal(train) {
         interestButton.disabled = true;
         interestButton.textContent = 'Guardando Solicitud...';
         
-        // Llama a la función global en leads.js
-        // window.saveProtectedLead debe estar definida en leads.js
+        // Llama a la función global en leads.js, pasando el título correcto
         if (window.saveProtectedLead) {
-             await window.saveProtectedLead(train.id, train.Modelo);
+             await window.saveProtectedLead(train.id, title);
         } else {
              window.displayModalMessage('Error: No se encontró la función para guardar la solicitud (leads.js).', 'error');
         }
        
-        // Revertir el estado del botón (la función saveProtectedLead maneja el feedback del usuario)
+        // Revertir el estado del botón 
         setTimeout(() => {
             interestButton.textContent = '¡Estoy Interesado!';
             interestButton.disabled = false;
@@ -133,14 +147,16 @@ window.hideProductModal = () => productModal.classList.add('hidden');
  */
 function renderTrainCard(train) {
     const imageUrl = train.ImagenURL || 'https://placehold.co/300x200/4F46E5/FFFFFF?text=SIN+IMAGEN';
+    const title = getTrainTitle(train); // Usar la función para el título
+    
     return `
         <div data-id="${train.id}" class="bg-white dark:bg-gray-800 p-4 shadow-xl rounded-xl transition duration-300 ease-in-out transform hover:scale-[1.02] hover:shadow-2xl cursor-pointer border border-gray-200 dark:border-gray-700 train-card">
             <img src="${imageUrl}" 
                 onerror="this.onerror=null;this.src='https://placehold.co/300x200/4F46E5/FFFFFF?text=SIN+IMAGEN';"
-                alt="Imagen de ${train.Numero}" 
+                alt="Imagen de ${train.Número}" 
                 class="w-full h-40 object-cover rounded-lg mb-4 border border-gray-100 dark:border-gray-600">
-            <h3 class="text-xl font-semibold text-gray-900 dark:text-white truncate">${train.Modelo}</h3>
-            <p class="text-sm text-gray-500 dark:text-gray-400">N°: ${train.Numero}</p>
+            <h3 class="text-xl font-semibold text-gray-900 dark:text-white truncate">${title}</h3>
+            <p class="text-sm text-gray-500 dark:text-gray-400">Marca: ${train.Marca}</p>
             <p class="text-lg font-bold text-indigo-600 dark:text-indigo-400 mt-2">$${train.Precio || 'N/A'}</p>
             <span class="inline-block mt-2 px-3 py-1 text-xs font-medium text-white bg-green-500 dark:bg-green-600 rounded-full">${train.Estado || 'Disponible'}</span>
         </div>
@@ -213,33 +229,28 @@ function renderCatalog(groupedTrains) {
 /**
  * Lee la colección 'Trenes' de Firestore y pinta el catálogo.
  * Esta función usa onSnapshot para escuchar cambios en tiempo real.
- * Debe ser llamada SÓLO después de que la autenticación está lista (desde app/auth.js).
  */
 window.initializeTrainCatalog = async () => {
-    // 1. Obtener las instancias de Firebase (establecidas en app/auth.js)
     const db = window.db; 
     const auth = window.auth;
 
-    // 2. Si no están listas o el usuario no está autenticado, no hacer nada.
     if (!db || !auth || !auth.currentUser) {
         return;
     }
 
     try {
-        // ** RUTA CORREGIDA: SÓLO el nombre de la colección en la raíz **
+        // RUTA FINAL Y CORRECTA: SÓLO el nombre de la colección en la raíz
         const trainsCollectionRef = collection(db, `Trenes`);
         
-        // Usar onSnapshot para obtener los datos en tiempo real
         onSnapshot(trainsCollectionRef, (snapshot) => {
             const trainsData = [];
             snapshot.forEach(doc => {
-                // Obtenemos los datos, incluyendo el ID del documento
+                // Añadir el ID del documento al objeto de datos
                 trainsData.push({ id: doc.id, ...doc.data() }); 
             });
 
             console.log(`[Firestore] Catálogo actualizado: ${trainsData.length} trenes.`);
             
-            // Si hay datos, renderizar. Si no hay, mostrar mensaje.
             if (trainsData.length > 0) {
                 const groupedTrains = groupTrainsByType(trainsData);
                 renderCatalog(groupedTrains);
@@ -250,7 +261,12 @@ window.initializeTrainCatalog = async () => {
         }, (error) => {
             // Este bloque se ejecuta si hay un problema de red, permisos o ruta.
             console.error("Error en onSnapshot del catálogo (PERMISOS/RUTA):", error);
-            catalogContainer.innerHTML = `<p class="text-red-500">Error al cargar el catálogo: ${error.message}. Por favor, verifica tus reglas de seguridad para la colección 'Trenes'.</p>`;
+            // Mostrar un mensaje de error más claro si falla por permisos
+            catalogContainer.innerHTML = `<p class="text-red-500 font-semibold mt-8 text-center">
+                Error al cargar el catálogo: ${error.message}. <br> 
+                Verifica que la ruta sea 'Trenes' y que las Reglas de Seguridad permitan la lectura: 
+                <code class="block mt-2 bg-gray-200 dark:bg-gray-700 p-2 rounded">allow read: if true;</code>
+            </p>`;
         });
 
     } catch (error) {
@@ -272,12 +288,11 @@ window.loadProfilePage = (user) => {
     }
 
     try {
-        // ** RUTA CORREGIDA: Asumiendo que 'Solicitudes' está en la raíz, como 'Trenes' **
+        // RUTA FINAL Y CORRECTA: SÓLO el nombre de la colección en la raíz
         const requestsCollectionPath = `Solicitudes`; 
         const requestsCollectionRef = collection(db, requestsCollectionPath);
         
         // Consultar solo las solicitudes del usuario actual
-        // Añadimos un filtro 'where' para asegurarnos de que solo se ven las solicitudes del usuario.
         const q = query(requestsCollectionRef, where('userId', '==', user.uid)); 
 
         // Usar onSnapshot para obtener los datos en tiempo real
