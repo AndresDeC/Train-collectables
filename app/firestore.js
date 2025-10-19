@@ -2,6 +2,9 @@
 const catalogContainer = document.getElementById('catalog-container');
 const catalogLoading = document.getElementById('catalog-loading');
 
+// Importante: Obtenemos el ID de la aplicación para construir la ruta pública
+const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+
 // 1. CREACIÓN DINÁMICA DEL CONTENEDOR DE FILTROS
 const filtersContainer = document.createElement('div');
 filtersContainer.id = 'filters-container';
@@ -24,12 +27,14 @@ let activeCategory = 'all'; // Categoría activa por defecto
 // -------------------------------------------------------------------
 
 /**
- * Formatea un número a moneda chilena (ej: 185990 -> $185.990)
+ * Formatea un número a moneda chilena (ej: 68 -> $68, o 68.000 -> $68.000)
+ * Asumimos que los precios en tu DB están en la unidad mínima (ej. 68 si son dólares o pesos)
  * @param {number} price - El precio del producto.
  * @returns {string} - El precio formateado.
  */
 function formatCurrency(price) {
-    return '$' + (price || 0).toLocaleString('es-CL');
+    // Usaremos un formato simple ya que el precio es un número entero simple (68)
+    return 'USD ' + (price || 0).toLocaleString('en-US'); 
 }
 
 // -------------------------------------------------------------------
@@ -38,14 +43,15 @@ function formatCurrency(price) {
 
 /**
  * Renderiza los botones de filtro basándose en las categorías únicas.
+ * El campo para filtrar es 'Tipo'.
  * @param {Array<Object>} trains - Lista completa de trenes.
  */
 function renderFilters(trains) {
     const categories = new Set(['all']); // Inicializa con 'all'
     trains.forEach(train => {
-        // Asumiendo que ahora tus documentos tienen un campo 'category'
-        if (train.category) {
-            categories.add(train.category);
+        // USANDO EL CAMPO 'Tipo' DE TU BASE DE DATOS
+        if (train.Tipo) {
+            categories.add(train.Tipo);
         }
     });
 
@@ -75,7 +81,8 @@ function renderFilters(trains) {
  */
 function filterAndRenderCatalog() {
     const filteredTrains = allTrains.filter(train => 
-        activeCategory === 'all' || train.category === activeCategory
+        // USANDO EL CAMPO 'Tipo'
+        activeCategory === 'all' || train.Tipo === activeCategory
     );
     renderCatalog(filteredTrains);
 }
@@ -90,25 +97,33 @@ function filterAndRenderCatalog() {
  * @returns {string} - HTML de la tarjeta.
  */
 function renderTrainCard(model) {
-    const placeholderUrl = `https://placehold.co/400x250/334155/E2E8F0?text=${encodeURIComponent(model.name)}`;
-    // Usamos 'imageUrl' si existe, si no, el placeholder
+    // Mapeo de campos de tu DB
+    const name = model.Número || 'N/A';
+    const description = model.Marca ? `Marca: ${model.Marca}. País: ${model.País}` : 'Modelo de colección.';
+    const price = model.Precio || 0;
+    const stock = model.Sets || 0; // Usaremos 'Sets' como stock
+    const category = model.Tipo || 'Varios';
+    const scale = model.Escala || 'N/A';
+
+    const placeholderUrl = `https://placehold.co/400x250/334155/E2E8F0?text=${encodeURIComponent(name)}`;
+    // Asumiremos que no tienes campo imageUrl por ahora
     const imageUrl = model.imageUrl || placeholderUrl; 
     
     // Determinar el estado del stock
-    const stockStatusClass = model.stock > 0 ? 'text-green-400' : 'text-red-400';
-    const stockStatusText = model.stock > 0 ? `En Stock (${model.stock})` : 'Agotado';
+    const stockStatusClass = stock > 0 ? 'text-green-400' : 'text-red-400';
+    const stockStatusText = stock > 0 ? `En Stock (${stock})` : 'Agotado';
 
     // La tarjeta entera es clicable para abrir el modal
     return `
         <div class="train-card cursor-pointer transform hover:scale-[1.02] transition-transform duration-200 ease-in-out" data-id="${model.id}">
             <div class="product-image" style="background-image: url('${imageUrl}')"></div>
             <div class="product-info">
-                <p class="text-sm font-semibold uppercase text-orange-400">${model.category || 'Varios'}</p>
-                <h3 class="product-title">${model.name}</h3>
-                <p class="product-description">${model.description.substring(0, 70)}...</p>
+                <p class="text-sm font-semibold uppercase text-orange-400">${category}</p>
+                <h3 class="product-title">Nº: ${name}</h3>
+                <p class="product-description">${description.substring(0, 70)}...</p>
                 <div class="product-footer pt-2">
                     <div class="product-price-status">
-                        <span class="product-price text-2xl font-bold">${formatCurrency(model.price)}</span>
+                        <span class="product-price text-2xl font-bold">${formatCurrency(price)}</span>
                         <span class="text-sm font-medium ${stockStatusClass}">${stockStatusText}</span>
                     </div>
                 </div>
@@ -154,11 +169,25 @@ function renderCatalog(trains) {
  * @param {Object} train - El objeto de datos del tren.
  */
 function showProductModal(train) {
-    const formattedPrice = formatCurrency(train.price || 0);
-    const placeholderUrl = `https://placehold.co/600x400/ff5722/000?text=${encodeURIComponent(train.name)}`;
+    // Mapeo de campos de tu DB
+    const name = train.Número || 'N/A';
+    const price = train.Precio || 0;
+    const stock = train.Sets || 0;
+    const category = train.Tipo || 'Varios';
+    const scale = train.Escala || 'N/A';
+    const coupling = train.Coupling || 'N/A';
+    const longitud = train.Longitud || 'N/A';
+    const marca = train.Marca || 'N/A';
+    const pais = train.País || 'N/A';
+    const linea = train.Línea || 'N/A';
+    const luzPropia = train['Luz Propia'] ? 'Sí' : 'No';
+
+
+    const formattedPrice = formatCurrency(price);
+    const placeholderUrl = `https://placehold.co/600x400/ff5722/000?text=${encodeURIComponent(name)}`;
     const imageUrl = train.imageUrl || placeholderUrl;
-    const stockStatusText = train.stock > 0 ? `¡${train.stock} unidades en stock!` : 'Agotado';
-    const stockStatusClass = train.stock > 0 ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 cursor-not-allowed';
+    const stockStatusText = stock > 0 ? `¡${stock} unidades en stock!` : 'Agotado';
+    const stockStatusClass = stock > 0 ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 cursor-not-allowed';
 
     // Contenido del modal
     modalBackdrop.innerHTML = `
@@ -169,34 +198,37 @@ function showProductModal(train) {
             <div class="md:flex gap-6 items-start">
                 <!-- Imagen del producto (lado izquierdo) -->
                 <div class="md:w-1/2 mb-4 md:mb-0 flex-shrink-0">
-                    <img src="${imageUrl}" alt="Modelo ${train.name}" class="rounded-lg shadow-xl w-full h-auto" onerror="this.onerror=null;this.src='${placeholderUrl}'">
+                    <img src="${imageUrl}" alt="Modelo ${name}" class="rounded-lg shadow-xl w-full h-auto" onerror="this.onerror=null;this.src='${placeholderUrl}'">
                 </div>
 
                 <!-- Detalles del producto (lado derecho) -->
                 <div class="md:w-1/2 flex-grow">
-                    <p class="text-sm font-semibold uppercase text-orange-400">${train.category || 'Varios'}</p>
-                    <h2 class="text-3xl font-bold mb-3 text-white">${train.name}</h2>
+                    <p class="text-sm font-semibold uppercase text-orange-400">${category} (${marca})</p>
+                    <h2 class="text-3xl font-bold mb-3 text-white">Modelo N°: ${name}</h2>
                     
                     <div class="text-4xl font-extrabold my-4 text-green-400">${formattedPrice}</div>
                     
+                    <ul class="space-y-2 mb-6 border-l-4 border-orange-500 pl-3 text-sm">
+                        <li class="text-gray-400"><strong>Escala:</strong> ${scale}</li>
+                        <li class="text-gray-400"><strong>País/Línea:</strong> ${pais} (${linea})</li>
+                        <li class="text-gray-400"><strong>Acoplamiento (Coupling):</strong> ${coupling}</li>
+                        <li class="text-gray-400"><strong>Longitud:</strong> ${longitud} mm</li>
+                        <li class="text-gray-400"><strong>Luz Propia:</strong> ${luzPropia}</li>
+                    </ul>
+                    
                     <p class="mb-4 text-gray-300">
-                        ${train.description || 'No hay una descripción detallada para este modelo. Contacta con nosotros para más información.'}
+                        Modelo de coleccionista de la marca ${marca} (País: ${pais}). Ideal para añadir a su línea ${linea}.
                     </p>
 
-                    <ul class="space-y-2 mb-6 border-l-4 border-orange-500 pl-3 text-sm">
-                        <li class="text-gray-400"><strong>Escala:</strong> ${train.scale || 'N/A'}</li>
-                        <li class="text-gray-400"><strong>Categoría:</strong> ${train.category || 'N/A'}</li>
-                        <li class="text-gray-400"><strong>Material:</strong> ${train.material || 'Metal y Plástico'}</li>
-                    </ul>
 
                     <!-- Botón de Interés (usará la lógica de leads.js) -->
                     <button 
-                        class="btn btn-primary w-full text-lg mt-4 ${stockStatusClass}" 
+                        class="btn btn-primary w-full text-lg mt-4 ${stock > 0 ? 'bg-orange-600 hover:bg-orange-700' : 'bg-red-600 cursor-not-allowed'}" 
                         data-model-id="${train.id}" 
-                        data-model-name="${train.name}"
-                        ${train.stock === 0 ? 'disabled' : ''}
+                        data-model-name="${name}"
+                        ${stock === 0 ? 'disabled' : ''}
                     >
-                        ${train.stock > 0 ? '¡Estoy Interesado!' : 'Agotado (Notificarme)'}
+                        ${stock > 0 ? '¡Estoy Interesado!' : 'Agotado (Notificarme)'}
                     </button>
                     <p class="text-center text-sm mt-2 font-semibold text-gray-400">${stockStatusText}</p>
                 </div>
@@ -235,7 +267,7 @@ function hideProductModal() {
 // -------------------------------------------------------------------
 
 /**
- * Escucha en tiempo real los cambios en la colección 'trainCatalog'
+ * Escucha en tiempo real los cambios en la colección 'Trenes'
  * y maneja la lógica de filtrado y renderizado.
  */
 function loadTrainsCatalog() {
@@ -246,12 +278,15 @@ function loadTrainsCatalog() {
 
     console.log('Iniciando escucha en tiempo real del catálogo de trenes...');
     
+    // **Ruta Adaptada:** Apuntando a tu colección 'Trenes' dentro del camino público
+    const collectionPath = `artifacts/${appId}/public/data/Trenes`;
+
     // Usamos onSnapshot para mantener la vista actualizada en tiempo real
-    db.collection('trainCatalog').onSnapshot(snapshot => {
+    db.collection(collectionPath).onSnapshot(snapshot => {
         if (catalogLoading) catalogLoading.classList.add('hidden');
 
         if (snapshot.empty) {
-            catalogContainer.innerHTML = '<p class="empty-message text-lg text-gray-500">No hay modelos de trenes disponibles en este momento.</p>';
+            catalogContainer.innerHTML = '<p class="empty-message text-lg text-gray-500">No hay modelos de trenes disponibles en este momento. Asegúrate de que los datos estén en la ruta: ' + collectionPath + '</p>';
             return;
         }
 
@@ -259,11 +294,11 @@ function loadTrainsCatalog() {
         
         snapshot.docs.forEach(doc => {
             const trainData = doc.data();
-            // Aseguramos que los documentos tienen un ID y un campo category (para el filtro)
+            // Guardamos el documento completo, incluyendo el ID
             allTrains.push({ id: doc.id, ...trainData }); 
         });
 
-        // 1. Renderizar los botones de filtro
+        // 1. Renderizar los botones de filtro (usando el campo 'Tipo')
         renderFilters(allTrains);
         
         // 2. Renderizar el catálogo inicial (filtrado por la categoría activa)
@@ -272,9 +307,9 @@ function loadTrainsCatalog() {
         console.log(`Catálogo actualizado. Se cargaron ${snapshot.size} modelos.`);
         
     }, error => {
-        console.error("Error al escuchar el catálogo de trenes:", error);
+        console.error("Error al escuchar el catálogo de trenes (Verifica las Reglas de Seguridad):", error);
         if (catalogLoading) catalogLoading.classList.add('hidden');
-        catalogContainer.innerHTML = '<p class="error-message">Error al cargar el catálogo. Intenta recargar la página.</p>';
+        catalogContainer.innerHTML = '<p class="error-message">Error al cargar el catálogo. Verifica que las reglas de seguridad de Firestore permitan la lectura.</p>';
     });
 }
 
