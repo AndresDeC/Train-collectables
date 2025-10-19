@@ -1,22 +1,40 @@
-import { collection, getFirestore, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+import { collection, onSnapshot, query } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
 // --- REFERENCIAS GLOBALES ---
 const catalogContainer = document.getElementById('catalog-container');
+const requestsListContainer = document.getElementById('requests-list'); // NUEVO
 const productModal = document.getElementById('product-modal-backdrop');
 const productModalContent = document.querySelector('#product-modal-backdrop .modal-content');
 const closeModalButton = document.getElementById('close-product-modal');
+const modalFeedbackContainer = document.getElementById('modal-feedback-message'); 
 
 // La instancia de Firestore (db) y Auth (auth) se obtienen de app/auth.js
 let db;
 let auth;
 
-// ** IMPORTANTE: PEGA AQUÍ TU ID DE PROYECTO DE FIREBASE **
-// Si estás usando GitHub Pages, esta variable es NECESARIA.
-// Sustituye 'TU_PROJECT_ID_AQUI_EJ_mi-proyecto-12345' por el ID real de tu proyecto de Firebase.
+// ** ID DEL PROYECTO DE FIREBASE OBTENIDO DEL USUARIO **
 const YOUR_FIREBASE_PROJECT_ID = 'extension-84b64'; 
 
 // La variable 'appId' obtiene el ID del entorno (si existe) o usa el ID que pegaste
 const appId = typeof __app_id !== 'undefined' ? __app_id : YOUR_FIREBASE_PROJECT_ID;
+window.appId = appId; // Hacemos appId global para que otros scripts (leads) puedan usarlo
+
+
+/**
+ * Muestra un mensaje temporal dentro del modal.
+ * @param {string} message - El mensaje a mostrar.
+ * @param {string} type - Tipo de mensaje ('success' o 'error').
+ */
+window.displayModalMessage = (message, type = 'success') => {
+    if (!modalFeedbackContainer) return;
+    modalFeedbackContainer.innerHTML = message;
+    modalFeedbackContainer.classList.remove('hidden', 'bg-green-600', 'bg-red-600', 'bg-gray-500'); // Limpiar clases
+    modalFeedbackContainer.classList.add(type === 'success' ? 'bg-green-600' : (type === 'error' ? 'bg-red-600' : 'bg-gray-500'));
+    
+    setTimeout(() => {
+        modalFeedbackContainer.classList.add('hidden');
+    }, 4000);
+};
 
 
 /**
@@ -40,14 +58,20 @@ function groupTrainsByType(trains) {
  * @param {object} train - Datos del tren a mostrar.
  */
 function showProductModal(train) {
-    // 1. Crear el contenido HTML del modal (con los nombres de campos actualizados en español)
+    // Limpiar mensajes anteriores
+    if (modalFeedbackContainer) modalFeedbackContainer.classList.add('hidden');
+
+    // 1. Crear el contenido HTML del modal (¡Añadimos el contenedor de mensajes!)
     productModalContent.innerHTML = `
         <h2 class="text-3xl font-bold text-gray-800 dark:text-white mb-4">${train.Modelo}</h2>
         <button id="close-modal-x" class="absolute top-3 right-3 text-4xl text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-white">&times;</button>
         
+        <div id="modal-feedback-message" class="hidden p-3 mb-4 rounded-lg text-white text-center font-semibold"></div>
+
         <div class="md:flex md:space-x-8">
             <div class="md:w-1/2">
                 <img src="${train.ImagenURL || 'https://placehold.co/500x300/4F46E5/FFFFFF?text=IMAGEN+NO+DISPONIBLE'}" 
+                     onerror="this.onerror=null;this.src='https://placehold.co/500x300/4F46E5/FFFFFF?text=IMAGEN+NO+DISPONIBLE';"
                      alt="Imagen de ${train.Modelo}" 
                      class="w-full h-auto object-cover rounded-lg shadow-lg mb-4">
             </div>
@@ -73,10 +97,9 @@ function showProductModal(train) {
                 <p class="mt-4 text-sm">${train.Descripcion || 'No hay descripción detallada disponible para este modelo.'}</p>
                 
                 <button 
-                    class="btn-primary w-full mt-6 py-3 text-lg transition duration-300 ease-in-out transform hover:scale-105"
-                    data-model-id="${train.id}"
-                    data-model-name="${train.Numero}">
-                    ¡Estoy Interesado! (Lead)
+                    id="interest-button"
+                    class="btn-primary w-full mt-6 py-3 text-lg transition duration-300 ease-in-out transform hover:scale-105">
+                    ¡Estoy Interesado! (Guardar Solicitud)
                 </button>
             </div>
         </div>
@@ -88,12 +111,23 @@ function showProductModal(train) {
     // 3. Asignar listener para cerrar el modal
     document.getElementById('close-modal-x').addEventListener('click', hideProductModal);
     
-    // 4. Conectar con la lógica de leads (importante)
-    if (window.attachLeadFormListeners) {
-        window.attachLeadFormListeners();
-    }
+    // 4. Conectar con la lógica de leads
+    const interestButton = document.getElementById('interest-button');
+    interestButton.addEventListener('click', async () => {
+        interestButton.disabled = true;
+        interestButton.textContent = 'Guardando Solicitud...';
+        
+        // Llama a la función global en leads.js
+        await window.saveProtectedLead(train.id, train.Modelo);
+        
+        // Revertir el estado del botón (la función saveProtectedLead maneja el feedback del usuario)
+        setTimeout(() => {
+            interestButton.textContent = '¡Estoy Interesado!';
+            interestButton.disabled = false;
+        }, 500); 
+    });
 }
-// Hacemos global la función de ocultar el modal para que js/leads.js pueda usarla
+// Hacemos global la función de ocultar el modal
 window.hideProductModal = () => productModal.classList.add('hidden');
 
 /**
@@ -106,6 +140,7 @@ function renderTrainCard(train) {
     return `
         <div data-id="${train.id}" class="bg-white dark:bg-gray-800 p-4 shadow-xl rounded-xl transition duration-300 ease-in-out transform hover:scale-[1.02] hover:shadow-2xl cursor-pointer border border-gray-200 dark:border-gray-700 train-card">
             <img src="${imageUrl}" 
+                 onerror="this.onerror=null;this.src='https://placehold.co/300x200/4F46E5/FFFFFF?text=SIN+IMAGEN';"
                  alt="Imagen de ${train.Numero}" 
                  class="w-full h-40 object-cover rounded-lg mb-4 border border-gray-100 dark:border-gray-600">
             <h3 class="text-xl font-semibold text-gray-900 dark:text-white truncate">${train.Modelo}</h3>
@@ -115,6 +150,26 @@ function renderTrainCard(train) {
         </div>
     `;
 }
+
+/**
+ * Crea el HTML para un elemento de solicitud en la página de perfil.
+ * @param {object} request - Objeto de datos de la solicitud.
+ * @returns {string} HTML del elemento de solicitud.
+ */
+function renderRequestItem(request) {
+    const date = request.timestamp ? new Date(request.timestamp.seconds * 1000).toLocaleDateString() : 'N/A';
+    const statusClass = request.status === 'Pendiente' ? 'bg-yellow-500' : 'bg-green-500';
+    return `
+        <div class="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg shadow flex justify-between items-center">
+            <div>
+                <p class="text-lg font-semibold text-gray-900 dark:text-white">${request.modelName}</p>
+                <p class="text-sm text-gray-500 dark:text-gray-400">Solicitado el: ${date}</p>
+            </div>
+            <span class="px-3 py-1 text-xs font-medium text-white ${statusClass} rounded-full">${request.status}</span>
+        </div>
+    `;
+}
+
 
 /**
  * Renderiza todas las secciones del catálogo.
@@ -162,22 +217,22 @@ function renderCatalog(groupedTrains) {
 /**
  * Lee la colección 'Trenes' de Firestore y pinta el catálogo.
  * Esta función usa onSnapshot para escuchar cambios en tiempo real.
+ * Debe ser llamada SÓLO después de que la autenticación está lista (desde app/auth.js).
  */
-async function initializeTrainCatalog() {
-    db = window.db || getFirestore(); // Usar la instancia global
+window.initializeTrainCatalog = async () => {
+    // 1. Obtener las instancias de Firebase (establecidas en app/auth.js)
+    db = window.db; 
     auth = window.auth;
 
-    if (!db || !auth || !auth.currentUser) {
-        console.error("[Firestore] La DB o la autenticación no están listas. Reintentando...");
-        // Reintentar si la autenticación aún no se ha completado
-        setTimeout(initializeTrainCatalog, 500);
+    // 2. Si no están listas o el usuario no está autenticado, no hacer nada.
+    if (!window.isAuthReady || !db || !auth || !auth.currentUser) {
+        // En este punto, auth.js ya habrá llamado a updateUI para mostrar la landing page.
         return;
     }
 
     try {
-        // La ruta usa el appId (del entorno o el pegado manualmente)
-        // CORRECCIÓN APLICADA: Aseguramos que use la variable ${appId}
-        const trainsCollectionRef = collection(db, `artifacts/$extension-84b64/public/data/Trenes`);
+        // COLECCIÓN PÚBLICA: artifacts/{appId}/public/data/Trenes
+        const trainsCollectionRef = collection(db, `artifacts/${appId}/public/data/Trenes`);
         
         // Usar onSnapshot para obtener los datos en tiempo real
         onSnapshot(trainsCollectionRef, (snapshot) => {
@@ -189,15 +244,17 @@ async function initializeTrainCatalog() {
 
             console.log(`[Firestore] Catálogo actualizado: ${trainsData.length} trenes.`);
             
-            // Agrupar y renderizar el catálogo
-            const groupedTrains = groupTrainsByType(trainsData);
-            renderCatalog(groupedTrains);
-
-            // NOTA: El listener de Leads (attachLeadFormListeners) se llama
-            // dentro de showProductModal cada vez que se abre un detalle de producto.
+            // Si hay datos, renderizar. Si no hay, mostrar mensaje.
+            if (trainsData.length > 0) {
+                const groupedTrains = groupTrainsByType(trainsData);
+                renderCatalog(groupedTrains);
+            } else {
+                catalogContainer.innerHTML = '<p class="text-gray-500 dark:text-gray-400">Aún no hay trenes en el catálogo. ¡Es hora de agregar!</p>';
+            }
 
         }, (error) => {
-            console.error("Error en onSnapshot del catálogo:", error);
+            console.error("Error en onSnapshot del catálogo (PERMISOS/RUTA):", error);
+            // Esto se ejecuta si hay un problema de red, permisos o ruta.
             catalogContainer.innerHTML = `<p class="text-red-500">Error al cargar el catálogo: ${error.message}. Verifica el Project ID y las reglas de seguridad.</p>`;
         });
 
@@ -207,8 +264,53 @@ async function initializeTrainCatalog() {
     }
 }
 
-// Hacemos la función disponible globalmente para que app/auth.js pueda llamarla
-window.initializeTrainCatalog = initializeTrainCatalog;
+
+/**
+ * Carga las solicitudes guardadas por el usuario en la página de perfil.
+ * @param {object} user - El objeto de usuario de Firebase.
+ */
+window.loadProfilePage = (user) => {
+    db = window.db; 
+    
+    if (!db || !user || !requestsListContainer) {
+        return;
+    }
+
+    // COLECCIÓN PRIVADA: artifacts/{appId}/users/{userId}/Solicitudes
+    const requestsCollectionPath = `artifacts/${appId}/users/${user.uid}/Solicitudes`;
+    const requestsCollectionRef = collection(db, requestsCollectionPath);
+    
+    // Consultar solo las solicitudes del usuario actual
+    const q = query(requestsCollectionRef); // Eliminamos orderBy para evitar problemas de índices
+
+    // Usar onSnapshot para obtener los datos en tiempo real
+    onSnapshot(q, (snapshot) => {
+        const requests = [];
+        snapshot.forEach(doc => {
+            requests.push({ id: doc.id, ...doc.data() });
+        });
+
+        console.log(`[Firestore] Solicitudes del usuario cargadas: ${requests.length}.`);
+
+        requestsListContainer.innerHTML = ''; // Limpiar
+        
+        if (requests.length === 0) {
+            requestsListContainer.innerHTML = '<p class="text-gray-500 dark:text-gray-400">Aún no has solicitado interés en ningún modelo.</p>';
+        } else {
+             // Ordenar en el cliente (navegador) por fecha descendente
+            requests.sort((a, b) => (b.timestamp?.seconds || 0) - (a.timestamp?.seconds || 0));
+            
+            requests.forEach(request => {
+                requestsListContainer.innerHTML += renderRequestItem(request);
+            });
+        }
+
+    }, (error) => {
+        console.error("Error al cargar solicitudes de perfil:", error);
+        requestsListContainer.innerHTML = `<p class="text-red-500">Error al cargar solicitudes: ${error.message}.</p>`;
+    });
+};
+
 
 // -------------------------------------------------------------------
 // EVENTOS ADICIONALES
@@ -218,6 +320,7 @@ window.initializeTrainCatalog = initializeTrainCatalog;
 window.addEventListener('load', () => {
     if (productModal) {
         productModal.addEventListener('click', (e) => {
+            // Cierra el modal solo si se hace clic directamente en el fondo
             if (e.target.id === 'product-modal-backdrop') {
                 window.hideProductModal();
             }
