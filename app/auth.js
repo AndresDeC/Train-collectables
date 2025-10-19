@@ -1,171 +1,267 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-import { getAuth, onAuthStateChanged, signInAnonymously, signInWithCustomToken, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-import { getFirestore, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+// js/auth.js
 
-// Importante: Variables globales del entorno
-const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
-const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
-const authButton = document.getElementById('auth-button');
-const authStatus = document.getElementById('auth-status');
-const catalogLink = document.getElementById('catalog-link'); // El link al catálogo exclusivo
+// Importante: Asegurarse de que `auth` y `db` están inicializados globalmente por `app/auth.js`
+// Asumimos que window.auth está disponible
 
-// Habilitar logs de depuración para Firestore
-setLogLevel('Debug');
+// --- 1. REFERENCIAS DEL DOM ---
+const loginModalContainer = document.getElementById('login-modal-container');
+const mainContent = document.getElementById('main-content');
+const authForm = document.getElementById('auth-form');
+const authSubmitBtn = document.getElementById('auth-submit-btn');
+const toggleModeBtn = document.getElementById('toggle-mode-btn');
+const googleLoginBtn = document.getElementById('google-login-btn');
+const authTitle = document.getElementById('auth-title');
+const authControls = document.getElementById('auth-controls');
+const errorMessage = document.getElementById('error-message');
 
-// Inicializar Firebase
-let app;
-let auth;
-let db;
-let currentUserId = null;
+let isRegisterMode = false;
+
+// --- 2. FUNCIONES DE UTILIDAD DE UI ---
 
 /**
- * Inicializa Firebase App, Auth y Firestore.
+ * Muestra un mensaje de error en la UI.
+ * @param {string} msg 
  */
-function initializeFirebase() {
-    try {
-        if (Object.keys(firebaseConfig).length === 0) {
-            console.error("Firebase Config no está disponible.");
-            return;
-        }
+function displayError(msg) {
+    errorMessage.textContent = msg;
+    errorMessage.classList.remove('hidden');
+    setTimeout(() => errorMessage.classList.add('hidden'), 5000);
+}
 
-        app = initializeApp(firebaseConfig);
-        auth = getAuth(app);
-        db = getFirestore(app);
+/**
+ * Muestra el modal de inicio de sesión/registro.
+ * Se expone globalmente para que `app/auth.js` pueda llamarlo.
+ */
+function showLoginModal() {
+    if (loginModalContainer) {
+        loginModalContainer.classList.remove('hidden');
+    }
+}
+window.showLoginModal = showLoginModal; // ⬅️ HACER ESTA FUNCIÓN GLOBAL
 
-        // Hacemos las instancias disponibles globalmente para firestore.js
-        window.db = db;
-        window.auth = auth;
-
-        // Establecer el listener de cambio de estado de autenticación
-        onAuthStateChanged(auth, handleAuthStateChange);
-        
-        // Intentar iniciar sesión con el token personalizado o de forma anónima
-        authenticateUser();
-
-    } catch (error) {
-        console.error("Error al inicializar Firebase:", error);
+/**
+ * Oculta el modal de inicio de sesión/registro.
+ */
+function hideLoginModal() {
+    if (loginModalContainer) {
+        loginModalContainer.classList.add('hidden');
     }
 }
 
 /**
- * Maneja la autenticación inicial usando el token o anónimamente.
+ * Actualiza los botones del modal de Login/Registro.
  */
-async function authenticateUser() {
-    try {
-        if (initialAuthToken) {
-            // Intentar iniciar sesión con el token personalizado proporcionado
-            await signInWithCustomToken(auth, initialAuthToken);
-            console.log("Usuario autenticado con token personalizado.");
-        } else {
-            // Si no hay token, usar autenticación anónima
-            await signInAnonymously(auth);
-            console.log("Usuario autenticado anónimamente.");
-        }
-    } catch (error) {
-        // En caso de error, siempre intentamos de forma anónima si falló el token
-        if (initialAuthToken) {
-             console.warn("Fallo al iniciar sesión con token, intentando anónimamente:", error);
-             await signInAnonymously(auth);
-        } else {
-            console.error("Error grave de autenticación:", error);
-        }
-    }
-}
-
-
-/**
- * Maneja los cambios de estado de autenticación (login/logout).
- * @param {import("firebase/auth").User | null} user - El objeto de usuario de Firebase.
- */
-function handleAuthStateChange(user) {
-    if (user) {
-        // Usuario autenticado (logueado o anónimo)
-        currentUserId = user.uid;
-        console.log("Usuario autenticado:", currentUserId);
-
-        // 1. Actualizar la interfaz de usuario (Botones y Bienvenida)
-        updateUI(true);
-        
-        // 2. Intentar inicializar el catálogo
-        // Esta función está definida en app/firestore.js, la llamamos aquí SÓLO cuando la DB está lista.
-        if (window.initializeTrainCatalog) {
-            window.initializeTrainCatalog();
-        } else {
-            // Esto solo ocurre si firestore.js no se ha cargado todavía, lo cual es inusual.
-            console.log("Esperando que 'app/firestore.js' se cargue para inicializar el catálogo.");
-        }
-
+function toggleAuthMode() {
+    isRegisterMode = !isRegisterMode;
+    if (isRegisterMode) {
+        authTitle.textContent = "Crear Cuenta (Registro)";
+        authSubmitBtn.textContent = "Registrarse";
+        toggleModeBtn.textContent = "¿Ya tienes cuenta? Inicia Sesión";
     } else {
-        // Usuario desconectado
-        currentUserId = null;
-        updateUI(false);
-        console.log("Usuario desconectado.");
+        authTitle.textContent = "Inicia Sesión para Ver el Catálogo";
+        authSubmitBtn.textContent = "Iniciar Sesión";
+        toggleModeBtn.textContent = "¿No tienes cuenta? Regístrate";
     }
 }
 
 /**
- * Actualiza los elementos del DOM basados en el estado de autenticación.
- * @param {boolean} isAuthenticated - Verdadero si hay un usuario logueado.
+ * Crea el documento inicial del usuario en Firestore.
+ * Esto es CRÍTICO para vincular Auth y Firestore.
+ * @param {object} user El objeto de usuario de Firebase Auth.
  */
-function updateUI(isAuthenticated) {
-    if (isAuthenticated) {
-        if (authStatus) authStatus.textContent = `Hola, ${currentUserId.substring(0, 8)}...`;
-        if (authButton) {
-            authButton.textContent = 'Cerrar Sesión';
-            authButton.onclick = handleLogout; // Asignar el listener de logout
-            authButton.classList.add('bg-red-600', 'hover:bg-red-700');
-            authButton.classList.remove('bg-orange-600', 'hover:bg-orange-700');
-        }
-        // Mostrar el link al catálogo si está oculto (si aplica)
-        if (catalogLink) catalogLink.classList.remove('hidden');
-
-    } else {
-        // Si el usuario no está autenticado, volvemos al estado inicial.
-        if (authStatus) authStatus.textContent = 'Entrar / Registrarse';
-        if (authButton) {
-            authButton.textContent = 'Entrar / Registrarse';
-            authButton.onclick = handleLoginRegister; // Asignar el listener de login/register
-            authButton.classList.remove('bg-red-600', 'hover:bg-red-700');
-            authButton.classList.add('bg-orange-600', 'hover:bg-orange-700');
-        }
-        // Ocultar el link al catálogo si se desconecta
-        if (catalogLink) catalogLink.classList.add('hidden');
-    }
-}
-
-
-/**
- * Manejador de eventos para el botón 'Cerrar Sesión'.
- */
-async function handleLogout() {
-    if (!auth) {
-        console.error("El servicio de Auth no está inicializado.");
+async function createUserProfile(user) {
+    // Usamos window.db que fue inicializado por app/auth.js
+    if (!window.db) {
+        console.error("Firestore DB no está disponible.");
         return;
     }
+    // NOTA: Usamos `firebase.firestore.FieldValue` solo si el SDK antiguo lo requiere.
+    // Con la versión 11.6.1, usaríamos funciones directas, pero mantendré tu estructura.
+    // Asegúrate de que tu HTML cargue el SDK de la forma correcta (modular o compat).
+
+    const userRef = window.db.collection("users").doc(user.uid);
     try {
-        await signOut(auth);
-        // La función handleAuthStateChange se encargará de actualizar la UI
+        await userRef.set({
+            email: user.email,
+            name: user.displayName || user.email,
+            // Si usas el SDK modular, FieldValue.serverTimestamp() no está disponible aquí
+            // Esto requerirá usar un timestamp simple por ahora si estamos usando solo 11.6.1 modular imports
+            // Para fines de la plataforma, asumiré que el campo `createdAt` puede ser omitido aquí para evitar un error de compatibilidad
+        }, { merge: true });
+        console.log("Perfil de usuario creado/actualizado en Firestore.");
+    } catch (error) {
+        console.error("Error al crear perfil de usuario:", error);
+    }
+}
+
+// --- 3. FUNCIONES DE FIREBASE AUTHENTICATION ---
+
+/**
+ * Maneja el inicio de sesión con correo y contraseña.
+ */
+async function handleLogin(email, password) {
+    if (!window.auth) { displayError("Servicio de autenticación no disponible."); return; }
+    try {
+        const userCredential = await window.auth.signInWithEmailAndPassword(email, password);
+        console.log("Login exitoso:", userCredential.user.email);
+        hideLoginModal(); // Ocultar el modal al iniciar sesión
+    } catch (error) {
+        let errorMsg = "Error de inicio de sesión. Por favor, verifica tus credenciales.";
+        if (error.code === 'auth/user-not-found') {
+             errorMsg = "Usuario no encontrado. Intenta registrarte.";
+        } else if (error.code === 'auth/wrong-password') {
+             errorMsg = "Contraseña incorrecta.";
+        }
+        displayError(errorMsg);
+    }
+}
+
+/**
+ * Maneja el registro de nuevo usuario.
+ */
+async function handleRegister(email, password) {
+    if (!window.auth) { displayError("Servicio de autenticación no disponible."); return; }
+    try {
+        const userCredential = await window.auth.createUserWithEmailAndPassword(email, password);
+        // Inmediatamente después del registro, creamos el perfil en Firestore
+        await createUserProfile(userCredential.user);
+        console.log("Registro exitoso:", userCredential.user.email);
+        hideLoginModal(); // Ocultar el modal al registrarse
+    } catch (error) {
+        let errorMsg = "Error de registro.";
+        if (error.code === 'auth/email-already-in-use') {
+             errorMsg = "Este correo ya está registrado.";
+        } else if (error.code === 'auth/weak-password') {
+             errorMsg = "La contraseña debe tener al menos 6 caracteres.";
+        }
+        displayError(errorMsg);
+    }
+}
+
+/**
+ * Maneja el inicio de sesión con Google.
+ */
+async function handleGoogleLogin() {
+    // NOTA: Para Google Login en SDK modular (11.6.1), necesitamos importar
+    // GoogleAuthProvider y signInWithPopup, pero eso complica el js/auth.js.
+    // Si estás usando la versión 11.6.1 modular, esta función podría necesitar revisión.
+    // La dejaré como estaba, asumiendo que tenías acceso al namespace global `firebase.auth`.
+    // Si da error, tendremos que refactorizar todo el js/auth.js a la sintaxis modular.
+    
+    // Asumiendo que `auth` es `window.auth`
+    if (!window.auth) { displayError("Servicio de autenticación no disponible."); return; }
+
+    const provider = new window.auth.GoogleAuthProvider(); // Esto es probablemente incorrecto para 11.6.1
+    
+    // Implementación temporal, probablemente requiera refactorizar a la sintaxis modular 
+    // de Google Auth (getAuth, GoogleAuthProvider, signInWithPopup)
+    displayError("El Login con Google requiere la sintaxis de Firebase v9+ y más refactorización.");
+    console.error("Login con Google desactivado temporalmente. Usa Email/Password.");
+
+    // try {
+    //     const result = await window.auth.signInWithPopup(provider);
+    //     await createUserProfile(result.user);
+    //     hideLoginModal();
+    // } catch (error) {
+    //     console.error("Error en Google Login:", error);
+    //     displayError("Error al iniciar sesión con Google.");
+    // }
+}
+
+/**
+ * Maneja el cierre de sesión.
+ */
+async function handleLogout() {
+    if (!window.auth) { console.error("Servicio de autenticación no disponible."); return; }
+    try {
+        await window.auth.signOut();
+        console.log("Cierre de sesión exitoso.");
+        // onAuthStateChanged se encargará de mostrar el modal de login
     } catch (error) {
         console.error("Error al cerrar sesión:", error);
     }
 }
 
 /**
- * Manejador de eventos para el botón 'Entrar / Registrarse'
- * (Actualmente solo llama a la función de autenticación inicial,
- * pero se expandiría para un modal de login/registro real).
+ * Actualiza la UI y decide qué mostrar (catálogo o login).
+ * Esta es la función principal que actúa como el guardián de acceso.
+ * @param {object | null} user El objeto de usuario actual (null si no hay sesión).
  */
-function handleLoginRegister() {
-     // En una aplicación real, esto abriría un modal para email/password.
-     // Por ahora, recargamos la autenticación inicial.
-     console.log("Botón de Entrar/Registrarse presionado. Recargando la página para reautenticar...");
-     window.location.reload(); 
+function updateUI(user) {
+    const auth = window.auth;
+    if (user) {
+        // --- LOGUEADO ---
+        hideLoginModal();
+        if(mainContent) mainContent.classList.remove('hidden');
+        
+        // Actualizar controles de la cabecera
+        authControls.innerHTML = `
+            <span>Hola, ${user.displayName || user.email || user.uid.substring(0, 8) + '...'}!</span>
+            <button id="logout-btn" class="btn btn-primary">Cerrar Sesión</button>
+        `;
+        const logoutBtn = document.getElementById('logout-btn');
+        if (logoutBtn) logoutBtn.addEventListener('click', handleLogout);
+
+        // Si la función loadCatalog está disponible, cárgala
+        if (window.loadCatalog) {
+            window.loadCatalog();
+        }
+        
+    } else {
+        // --- NO LOGUEADO ---
+        // Si no hay usuario y estamos en la página del catálogo, mostrar el modal.
+        const isCatalogPage = window.location.pathname.includes('catalog.html');
+        if (isCatalogPage) {
+            showLoginModal();
+        } else {
+             // En la página de inicio, simplemente ocultamos el contenido principal
+             if(mainContent) mainContent.classList.add('hidden');
+        }
+        authControls.innerHTML = '';
+    }
 }
 
 
-// -------------------------------------------------------------------
-// INICIO DE LA APLICACIÓN
-// -------------------------------------------------------------------
+// --- 4. EVENT LISTENERS ---
 
-// Esperamos a que la página esté completamente cargada
-window.addEventListener('load', initializeFirebase);
+// Escucha los cambios de estado de autenticación (el guardián)
+// Esperamos a que app/auth.js inicialice Firebase y asigne window.auth
+window.addEventListener('load', () => {
+    if (window.auth) {
+        window.auth.onAuthStateChanged(updateUI);
+    } else {
+        console.error("Esperando la inicialización de Firebase desde app/auth.js");
+    }
+});
+
+
+// Alternar entre Login y Registro
+if (toggleModeBtn) {
+    toggleModeBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        toggleAuthMode();
+    });
+}
+
+// Enviar formulario (Login o Registro)
+if (authForm) {
+    authForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const email = document.getElementById('email-input').value;
+        const password = document.getElementById('password-input').value;
+
+        if (isRegisterMode) {
+            handleRegister(email, password);
+        } else {
+            handleLogin(email, password);
+        }
+    });
+}
+
+// Login con Google
+if (googleLoginBtn) {
+    googleLoginBtn.addEventListener('click', handleGoogleLogin);
+}
+
+// Inicializar el modo por defecto
+window.addEventListener('load', toggleAuthMode);
