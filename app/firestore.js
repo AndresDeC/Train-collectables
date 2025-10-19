@@ -32,7 +32,7 @@ function groupTrainsByType(trains) {
  * @param {object} train - Datos del tren a mostrar.
  */
 function showProductModal(train) {
-    // 1. Crear el contenido HTML del modal
+    // 1. Crear el contenido HTML del modal (con los nombres de campos actualizados en español)
     productModalContent.innerHTML = `
         <h2 class="text-3xl font-bold text-gray-800 dark:text-white mb-4">${train.Modelo}</h2>
         <button id="close-modal-x" class="absolute top-3 right-3 text-4xl text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-white">&times;</button>
@@ -44,11 +44,24 @@ function showProductModal(train) {
                      class="w-full h-auto object-cover rounded-lg shadow-lg mb-4">
             </div>
             <div class="md:w-1/2 space-y-3 text-gray-700 dark:text-gray-300">
-                <p><strong>N° de Modelo:</strong> ${train.Numero}</p>
-                <p><strong>Tipo:</strong> ${train.Tipo || 'N/A'}</p>
+                <!-- Información Técnica y de Fabricación -->
+                <p><strong>Marca:</strong> ${train.Marca || 'N/A'}</p>
+                <p><strong>Número de Modelo:</strong> ${train.Numero || 'N/A'}</p>
+                <p><strong>Tipo de Producto:</strong> ${train.Tipo || 'N/A'}</p>
+                <p><strong>Línea:</strong> ${train.Línea || 'N/A'}</p>
+                <p><strong>País de Origen:</strong> ${train.País || 'N/A'}</p>
+                
+                <!-- Especificaciones Físicas y Técnicas -->
                 <p><strong>Escala:</strong> ${train.Escala || 'N/A'}</p>
-                <p><strong>Estado:</strong> <span class="font-semibold text-green-600 dark:text-green-400">${train.Estado || 'Excelente'}</span></p>
+                <p><strong>Longitud (mm):</strong> ${train.Longitud || 'N/A'}</p>
+                <p><strong>Luz Propia:</strong> ${train['Luz Propia'] || 'No especificado'}</p>
+                <p><strong>Suministro Eléctrico:</strong> ${train['Suministro eléctrico'] || 'N/A'}</p>
+                
+                <!-- Estado y Precio -->
+                <p class="mt-4"><strong>Estado:</strong> <span class="font-semibold text-green-600 dark:text-green-400">${train.Estado || 'Excelente'}</span></p>
                 <p class="text-lg"><strong>Precio Estimado:</strong> <span class="text-indigo-600 dark:text-indigo-400 font-bold">$${train.Precio || 'N/A'}</span></p>
+                
+                <!-- Descripción -->
                 <p class="mt-4 text-sm">${train.Descripcion || 'No hay descripción detallada disponible para este modelo.'}</p>
                 
                 <button 
