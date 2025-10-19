@@ -1,9 +1,13 @@
+import { collection, getFirestore, onSnapshot, query } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
 // Referencias del DOM y creación de elementos necesarios
 const catalogContainer = document.getElementById('catalog-container');
 const catalogLoading = document.getElementById('catalog-loading'); 
 
-// Importante: Obtenemos el ID de la aplicación para construir la ruta pública
+// Importante: Obtenemos el ID de la aplicación y la instancia de la base de datos
 const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+// Aseguramos que la instancia de la DB global esté disponible
+const db = window.db || getFirestore(); 
 
 // 1. CREACIÓN DINÁMICA DEL CONTENEDOR DE FILTROS
 const filtersContainer = document.createElement('div');
@@ -295,22 +299,30 @@ function hideProductModal() {
  * y maneja la lógica de filtrado y renderizado.
  */
 function initializeTrainCatalog() { 
-    if (!catalogContainer) return;
+    if (!catalogContainer || !db) {
+        console.error("Catálogo no iniciado: Contenedor o DB no disponibles.");
+        return;
+    }
+    
     if (catalogLoading) catalogLoading.classList.remove('hidden');
     catalogContainer.innerHTML = ''; 
     filtersContainer.innerHTML = '';
 
     console.log('Iniciando escucha en tiempo real del catálogo de trenes...');
     
-    // RUTA CORREGIDA: Apuntando a tu colección 'Trenes' dentro del camino público
-    const collectionPath = `artifacts/${appId}/public/data/Trenes`;
+    // 🚨 RUTA CORREGIDA con sintaxis modular:
+    // Asegura que apunta a /artifacts/{appId}/public/data/Trenes
+    const collectionRef = collection(db, `artifacts/${appId}/public/data/Trenes`);
+    const q = query(collectionRef); // Puedes añadir aquí ordenación si fuera necesario
 
     // Usamos onSnapshot para mantener la vista actualizada en tiempo real
-    db.collection(collectionPath).onSnapshot(snapshot => {
+    const unsubscribe = onSnapshot(q, (snapshot) => {
         if (catalogLoading) catalogLoading.classList.add('hidden');
 
         if (snapshot.empty) {
-            catalogContainer.innerHTML = '<p class="empty-message text-lg text-gray-500">No hay modelos de trenes disponibles en este momento. Verifica que los datos estén en la ruta: ' + collectionPath + '</p>';
+            const collectionPath = `artifacts/${appId}/public/data/Trenes`;
+            catalogContainer.innerHTML = `<p class="empty-message text-lg text-gray-500">No hay modelos de trenes disponibles en este momento. Verifica que los datos estén en la ruta: <code class="text-orange-400">${collectionPath}</code></p>`;
+            console.warn(`Colección 'Trenes' vacía en la ruta: ${collectionPath}`);
             return;
         }
 
@@ -330,10 +342,13 @@ function initializeTrainCatalog() {
         console.log(`Catálogo actualizado. Se cargaron ${snapshot.size} modelos.`);
         
     }, error => {
-        console.error("Error al escuchar el catálogo de trenes (Verifica las Reglas de Seguridad):", error);
+        console.error("Error al escuchar el catálogo de trenes (Verifica las Reglas de Seguridad y la Conexión):", error);
         if (catalogLoading) catalogLoading.classList.add('hidden');
-        catalogContainer.innerHTML = '<p class="error-message">Error al cargar el catálogo. Por favor, verifica que las reglas de seguridad de Firestore permitan la lectura pública de la colección "Trenes" en la ruta pública.</p>';
+        catalogContainer.innerHTML = '<p class="error-message">Error al cargar el catálogo. Por favor, verifica que las reglas de seguridad de Firestore permitan la lectura pública de la colección "Trenes".</p>';
     });
+    
+    // (Opcional) Retornar la función de desuscripción para limpieza si la usáramos en React/Angular
+    // return unsubscribe; 
 }
 
 // Exportamos la función para que app/auth.js la pueda llamar.
