@@ -26,26 +26,87 @@
     </script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
+        
+        /* --- ESTILOS BASE Y TEMA --- */
         body { 
             font-family: 'Inter', sans-serif; 
-            /* Se ha quitado la clase .dark-mode CSS, se usa Tailwind */
             min-height: 100vh;
-            transition: background-color 0.3s; /* Transición para el body */
+            /* La transición ahora solo aplica al color de texto */
+            transition: color 0.3s; 
+            background-color: transparent; /* El fondo es el carrusel */
+            position: relative;
+            z-index: 10; /* Asegura que el contenido esté por encima del overlay */
         }
-        /* Estilos generales para el modo claro/oscuro (aplicado por defecto a body) */
-        body { 
-            background-color: #f8fafc; /* Modo Claro: white/slate */
-            color: #1e293b; /* Modo Claro: dark text */
+        
+        /* Definición de la animación de carrusel */
+        @keyframes imageAnimation {
+            0% { opacity: 0; animation-timing-function: ease-in; }
+            8% { opacity: 1; animation-timing-function: ease-out; } /* Fade in */
+            33% { opacity: 1; } /* Stay visible */
+            41% { opacity: 0; } /* Fade out */
+            100% { opacity: 0; } /* Keep hidden */
         }
-        /* Sobreescribe para el modo OSCURO (aplicado cuando <html> tiene la clase 'dark') */
-        .dark body { 
-            background-color: #0f172a; 
-            color: #f8fafc; 
+
+        /* --- CARROUSEL DE FONDO --- */
+        #background-carousel {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -2; /* Detrás de todo */
+        }
+
+        /* Imágenes del carrusel (slides) */
+        .slide {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-size: cover;
+            background-position: center;
+            opacity: 0;
+            /* El ciclo completo es 15s (3 imágenes * 5s) */
+            animation: imageAnimation 15s infinite; 
+        }
+
+        /* Asignación de imágenes y tiempos */
+        .slide:nth-child(1) { 
+            background-image: url('Imagen fondo.webp'); /* Tu imagen de tren */
+            animation-delay: 0s; 
+        } 
+        .slide:nth-child(2) { 
+            /* Placeholder 1 (Reemplaza esta URL) */
+            background-image: url('Imagen fondo2.webp');
+            animation-delay: 5s; 
+        } 
+        .slide:nth-child(3) { 
+            /* Placeholder 2 (Reemplaza esta URL) */
+            background-image: url('Imagen fondo3.webp');
+            animation-delay: 10s; 
+        } 
+
+        /* --- CAPA DE SUPERPOSICIÓN (OVERLAY) --- */
+        #content-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1; /* Encima del carrusel pero detrás del contenido */
+            /* Gradient oscuro para modo CLARO (sigue el estilo del diseño original) */
+            background: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.7)); 
+            transition: background 0.3s;
+        }
+        /* Gradient más oscuro para modo OSCURO */
+        .dark #content-overlay {
+            background: linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.9));
         }
 
         .container { max-width: 1200px; margin: 0 auto; padding: 2rem 1rem; }
         
-        /* Header & Navegación */
+        /* Header & Navegación - Mantenemos el fondo del header para que sea legible */
         #app-header {
             background-color: #1e293b;
             border-bottom: 1px solid #334155;
@@ -79,7 +140,7 @@
         .view { display: none; }
         .view.active { display: block; }
 
-        /* Auth/Lead Card */
+        /* Auth/Lead Card - Mantenemos el fondo oscuro para contraste */
         .auth-card {
             background-color: #1e293b;
             border-radius: 1rem;
@@ -175,9 +236,23 @@
         })();
     </script>
 </head>
-<!-- Se quitó la clase body="dark-mode" ya que se maneja con el script de arriba y las clases de Tailwind -->
 <body>
 
+    <!-- ----------------------------------------------------- -->
+    <!-- NUEVO: CAROUSEL DE FONDO Y OVERLAY -->
+    <!-- ----------------------------------------------------- -->
+    <div id="background-carousel">
+        <!-- Slide 1: Tu imagen, visible de 0s a 5s -->
+        <div class="slide"></div>
+        <!-- Slide 2: Marcador de posición 1, visible de 5s a 10s -->
+        <div class="slide"></div>
+        <!-- Slide 3: Marcador de posición 2, visible de 10s a 15s -->
+        <div class="slide"></div>
+    </div>
+    
+    <!-- Capa oscura para asegurar el contraste de lectura -->
+    <div id="content-overlay"></div> 
+    
     <!-- ----------------------------------------------------- -->
     <!-- 1. HEADER (SIEMPRE VISIBLE - Botones dinámicos) -->
     <!-- ----------------------------------------------------- -->
@@ -228,12 +303,12 @@
         <!-- VISTA 0: LANDING PAGE (PÚBLICA Y ACTIVA POR DEFECTO) -->
         <section id="landing-view" class="view active">
             <div class="landing-content">
-                <h1 class="text-4xl font-extrabold mb-2">Bienvenido a Trenes Store</h1>
-                <p class="subtitle text-xl mb-6 text-gray-400">La colección más selecta de modelos de trenes a escala. Regístrate o inicia sesión para acceder al catálogo completo.</p>
+                <h1 class="text-4xl font-extrabold mb-2 text-white dark:text-gray-100">Bienvenido a Trenes Store</h1>
+                <p class="subtitle text-xl mb-6 text-gray-200">La colección más selecta de modelos de trenes a escala. Regístrate o inicia sesión para acceder al catálogo completo.</p>
                 
                 <!-- Formulario de Captura de Leads (Público) -->
                 <div class="lead-form-container auth-card p-6">
-                    <h3 class="text-2xl mb-3">¿Interesado en novedades y ofertas?</h3>
+                    <h3 class="text-2xl mb-3 text-white">¿Interesado en novedades y ofertas?</h3>
                     <p class="mb-4 text-gray-400">Déjanos tu correo y te avisaremos sobre las próximas colecciones.</p>
                     
                     <!-- 🚨 CONFIGURACIÓN FORMSUBMIT 🚨 -->
@@ -496,7 +571,6 @@
 
         /**
          * Actualiza el icono del botón de tema (Sol o Luna) según el tema actual.
-         * Se usan los paths de SVG de Heroicons/Tailwind (diferentes a los de Lucide de la versión anterior)
          */
         function updateThemeIcon() {
             const isDark = document.documentElement.classList.contains('dark');
