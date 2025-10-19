@@ -213,8 +213,10 @@ authForm.addEventListener('submit', async (e) => {
         errorMessage.classList.add('hidden'); 
 
         if (isLoginMode) {
+            // SINTAXIS MODERNA: signInWithEmailAndPassword(auth, email, password)
             await signInWithEmailAndPassword(auth, email, password);
         } else {
+            // SINTAXIS MODERNA: createUserWithEmailAndPassword(auth, email, password)
             await createUserWithEmailAndPassword(auth, email, password);
             // Si el registro es exitoso, onAuthStateChanged se dispara
         }
@@ -222,8 +224,10 @@ authForm.addEventListener('submit', async (e) => {
     } catch (error) {
         console.error("Error de autenticación:", error.code, error.message);
         let userMessage = error.message;
-        if (error.code === 'auth/invalid-credential') {
-             userMessage = isLoginMode ? 'Credenciales incorrectas (email o contraseña).' : 'Usuario no encontrado.';
+        if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found') {
+             userMessage = 'Credenciales incorrectas (email o contraseña).';
+        } else if (error.code === 'auth/email-already-in-use') {
+             userMessage = 'Este email ya está registrado.';
         }
         displayAuthMessage(userMessage, true);
     }
@@ -242,12 +246,14 @@ logoutBtn.addEventListener('click', async () => {
 // 4. Botón de cambio de modo (Login <-> Registro)
 toggleModeBtn.addEventListener('click', toggleAuthMode);
 
-// 5. Botón de Login con Google
+// 5. Botón de Login con Google (CORREGIDO)
 googleLoginBtn.addEventListener('click', async () => {
     if (!auth) return;
-    const provider = new GoogleAuthProvider();
+    // La variable GoogleAuthProvider DEBE ser importada y se inicializa con new
+    const provider = new GoogleAuthProvider(); 
     try {
-        await signInWithPopup(auth, provider);
+        // SINTAXIS MODERNA: signInWithPopup(auth, provider)
+        await signInWithPopup(auth, provider); 
     } catch (error) {
         console.error("Error de Google Auth:", error);
         if (error.code !== 'auth/popup-closed-by-user') {
