@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mi Perfil - Trenes Store</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Configuración para usar un buen fuente -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'primary-dark': '#1e293b',
+                        'secondary-light': '#94a3b8',
+                    },
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .dark-mode {
+            background-color: #0f172a;
+            color: #f8fafc;
+        }
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 2rem;
+            background-color: #1e293b;
+            border-bottom: 1px solid #334155;
+        }
+        .logo { font-size: 1.5rem; font-weight: bold; color: #3b82f6; }
+        .btn-secondary { background-color: #475569; color: white; padding: 0.5rem 1rem; border-radius: 0.5rem; transition: background-color 0.3s; }
+        .btn-secondary:hover { background-color: #64748b; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 0 1rem; }
+    </style>
+</head>
+<body class="dark-mode">
+
+    <!-- ----------------------------------------------------- -->
+    <!-- 1. HEADER (Estructura de navegación para usuarios logueados) -->
+    <!-- ----------------------------------------------------- -->
+    <header id="app-header">
+        <div class="header-content">
+            <h1 class="logo">Trenes Store</h1>
+            <nav id="app-nav" class="flex space-x-4">
+                <a href="index.html" class="text-white hover:text-blue-400 p-2">Inicio</a> 
+                <a href="catalogo.html" class="text-white hover:text-blue-400 p-2">Catálogo Exclusivo</a>
+                <a href="perfil.html" class="text-blue-400 border-b-2 border-blue-400 p-2">Mi Perfil</a>
+            </nav>
+        </div>
+        <div id="auth-controls" class="user-controls flex items-center space-x-4">
+            <!-- user-display y logout-btn se manejan por JS -->
+            <span id="user-display" class="user-welcome hidden text-sm">Hola, Coleccionista</span>
+            <button id="logout-btn" class="btn btn-secondary hidden">Cerrar Sesión</button>
+        </div>
+    </header>
+
+    <!-- ----------------------------------------------------- -->
+    <!-- 2. CONTENIDO PRINCIPAL (Perfil) -->
+    <!-- ----------------------------------------------------- -->
+    <main id="main-content" class="container py-10">
+        <div id="profile-details" class="bg-primary-dark rounded-xl shadow-2xl p-8 max-w-xl mx-auto border border-gray-700">
+            <h2 class="text-3xl font-extrabold mb-6 text-white text-center">Mi Cuenta de Coleccionista</h2>
+
+            <!-- Ítem de Perfil: Email -->
+            <div class="mb-4 p-3 bg-gray-700 rounded-lg">
+                <p class="text-sm font-semibold text-secondary-light">Correo Electrónico (Principal)</p>
+                <p class="text-xl font-medium text-white break-words" id="profile-email">Cargando...</p>
+            </div>
+
+            <!-- Ítem de Perfil: UID -->
+            <div class="mb-4 p-3 bg-gray-700 rounded-lg">
+                <p class="text-sm font-semibold text-secondary-light">Identificador Único (UID)</p>
+                <p class="text-sm text-gray-300 break-all" id="profile-uid">Cargando...</p>
+            </div>
+            
+            <!-- Ítem de Perfil: Fecha de Creación -->
+            <div class="mb-6 p-3 bg-gray-700 rounded-lg">
+                <p class="text-sm font-semibold text-secondary-light">Miembro Desde</p>
+                <p class="text-lg text-white" id="profile-date">Cargando...</p>
+            </div>
+
+            <div class="flex flex-col space-y-3 mt-8">
+                <button class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition duration-200">
+                    Editar Contraseña
+                </button>
+                <button class="bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded-lg transition duration-200">
+                    Ver mis pedidos
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <!-- --------------------------------- -->
+    <!-- FIREBASE AND JAVASCRIPT IMPORTS -->
+    <!-- --------------------------------- -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+    
+    <script>
+        // Configuración de Firebase - ¡DEBE SER LA MISMA QUE index.html!
+        const firebaseConfig = {
+            apiKey: "AIzaSyB2OQlpj172YorIF2iB_Nvt2JB_W1U-G1A", 
+            authDomain: "extension-84b64.firebaseapp.com",
+            projectId: "extension-84b64",
+        };
+        const app = firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+
+        // Referencias del DOM para esta página
+        const userDisplay = document.getElementById('user-display');
+        const logoutBtn = document.getElementById('logout-btn');
+        const profileEmail = document.getElementById('profile-email');
+        const profileUid = document.getElementById('profile-uid');
+        const profileDate = document.getElementById('profile-date');
+
+        // LÓGICA DE SEGURIDAD: Verifica la sesión y redirige si no hay usuario
+        auth.onAuthStateChanged(user => {
+            if (user) {
+                // Usuario autenticado: Mostrar info de usuario y cargar detalles del perfil
+                userDisplay.classList.remove('hidden');
+                logoutBtn.classList.remove('hidden');
+                
+                // 1. Mostrar saludo
+                const displayName = user.displayName || user.email.split('@')[0];
+                userDisplay.textContent = `Hola, ${displayName}`;
+
+                // 2. Llenar detalles del perfil
+                profileEmail.textContent = user.email;
+                profileUid.textContent = user.uid;
+                
+                // Formatear la fecha
+                const creationDate = user.metadata.creationTime ? 
+                    new Date(user.metadata.creationTime).toLocaleDateString('es-ES', { 
+                        year: 'numeric', 
+                        month: 'long', 
+                        day: 'numeric' 
+                    }) : 'N/A';
+                profileDate.textContent = creationDate;
+
+            } else {
+                // Usuario NO autenticado: Redirigir a la página de inicio
+                console.log('Acceso denegado. Redirigiendo a index.html');
+                window.location.href = 'index.html';
+            }
+        });
+
+        // Manejo del Logout (Redirige a index.html)
+        logoutBtn.addEventListener('click', async () => {
+            try {
+                await auth.signOut();
+                // onAuthStateChanged se encargará de redirigir a index.html
+            } catch (error) {
+                console.error("Error al cerrar sesión:", error);
+            }
+        });
+    </script>
+
+</body>
+</html>
