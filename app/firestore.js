@@ -1,6 +1,6 @@
 // Referencias del DOM y creación de elementos necesarios
 const catalogContainer = document.getElementById('catalog-container');
-const catalogLoading = document.getElementById('catalog-loading');
+const catalogLoading = document.getElementById('catalog-loading'); 
 
 // Importante: Obtenemos el ID de la aplicación para construir la ruta pública
 const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
@@ -27,13 +27,12 @@ let activeCategory = 'all'; // Categoría activa por defecto
 // -------------------------------------------------------------------
 
 /**
- * Formatea un número a moneda chilena (ej: 68 -> $68, o 68.000 -> $68.000)
- * Asumimos que los precios en tu DB están en la unidad mínima (ej. 68 si son dólares o pesos)
+ * Formatea un número a moneda (asumiendo dólares por defecto si el precio es bajo)
  * @param {number} price - El precio del producto.
  * @returns {string} - El precio formateado.
  */
 function formatCurrency(price) {
-    // Usaremos un formato simple ya que el precio es un número entero simple (68)
+    // Usaremos un formato simple de USD.
     return 'USD ' + (price || 0).toLocaleString('en-US'); 
 }
 
@@ -42,12 +41,11 @@ function formatCurrency(price) {
 // -------------------------------------------------------------------
 
 /**
- * Renderiza los botones de filtro basándose en las categorías únicas.
- * El campo para filtrar es 'Tipo'.
+ * Renderiza los botones de filtro basándose en las categorías únicas ('Tipo').
  * @param {Array<Object>} trains - Lista completa de trenes.
  */
 function renderFilters(trains) {
-    const categories = new Set(['all']); // Inicializa con 'all'
+    const categories = new Set(['all']); 
     trains.forEach(train => {
         // USANDO EL CAMPO 'Tipo' DE TU BASE DE DATOS
         if (train.Tipo) {
@@ -55,7 +53,7 @@ function renderFilters(trains) {
         }
     });
 
-    filtersContainer.innerHTML = ''; // Limpiar filtros anteriores
+    filtersContainer.innerHTML = ''; 
 
     categories.forEach(category => {
         const button = document.createElement('button');
@@ -68,7 +66,7 @@ function renderFilters(trains) {
         button.addEventListener('click', () => {
             activeCategory = category;
             filterAndRenderCatalog();
-            // Refrescar el estilo del botón activo
+            // Re-renderizar filtros para actualizar el estado activo (color)
             renderFilters(allTrains); 
         });
 
@@ -101,19 +99,16 @@ function renderTrainCard(model) {
     const name = model.Número || 'N/A';
     const description = model.Marca ? `Marca: ${model.Marca}. País: ${model.País}` : 'Modelo de colección.';
     const price = model.Precio || 0;
-    const stock = model.Sets || 0; // Usaremos 'Sets' como stock
+    const stock = model.Sets || 0; 
     const category = model.Tipo || 'Varios';
-    const scale = model.Escala || 'N/A';
 
-    const placeholderUrl = `https://placehold.co/400x250/334155/E2E8F0?text=${encodeURIComponent(name)}`;
-    // Asumiremos que no tienes campo imageUrl por ahora
+    const placeholderUrl = `https://placehold.co/400x250/334155/E2E8F0?text=${encodeURIComponent('N° ' + name)}`;
     const imageUrl = model.imageUrl || placeholderUrl; 
     
     // Determinar el estado del stock
     const stockStatusClass = stock > 0 ? 'text-green-400' : 'text-red-400';
     const stockStatusText = stock > 0 ? `En Stock (${stock})` : 'Agotado';
 
-    // La tarjeta entera es clicable para abrir el modal
     return `
         <div class="train-card cursor-pointer transform hover:scale-[1.02] transition-transform duration-200 ease-in-out" data-id="${model.id}">
             <div class="product-image" style="background-image: url('${imageUrl}')"></div>
@@ -133,21 +128,52 @@ function renderTrainCard(model) {
 }
 
 /**
- * Renderiza las tarjetas de trenes filtradas.
+ * Renderiza las tarjetas de trenes agrupadas por Tipo (categoría).
  * @param {Array<Object>} trains - Lista de trenes a mostrar.
  */
 function renderCatalog(trains) {
     catalogContainer.innerHTML = '';
+    
     if (trains.length === 0) {
         catalogContainer.innerHTML = '<p class="text-lg text-gray-500">No hay modelos de trenes que coincidan con esta categoría.</p>';
         return;
     }
 
-    trains.forEach(train => {
-        catalogContainer.insertAdjacentHTML('beforeend', renderTrainCard(train));
+    // 1. Agrupar trenes por Tipo
+    const groupedTrains = trains.reduce((acc, train) => {
+        const type = train.Tipo || 'Otros Modelos';
+        if (!acc[type]) {
+            acc[type] = [];
+        }
+        acc[type].push(train);
+        return acc;
+    }, {});
+
+    let htmlContent = '';
+
+    // 2. Iterar sobre los grupos y crear una sección para cada uno
+    Object.keys(groupedTrains).forEach(type => {
+        const typeTrains = groupedTrains[type];
+        
+        // Título de la sección
+        htmlContent += `<h2 class="text-3xl font-bold text-white mt-10 mb-5 section-title">${type.toUpperCase()}</h2>`;
+
+        // Contenedor de las tarjetas para este grupo
+        htmlContent += `<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-8">`;
+        
+        // Renderizar las tarjetas dentro del grupo
+        typeTrains.forEach(train => {
+            htmlContent += renderTrainCard(train);
+        });
+
+        htmlContent += `</div>`; // Cierre del grid
     });
 
-    // Agregar evento de click a las nuevas tarjetas para abrir el modal
+    // 3. Inyectar todo el contenido HTML
+    catalogContainer.innerHTML = htmlContent;
+
+
+    // 4. Agregar evento de click a las nuevas tarjetas para abrir el modal
     document.querySelectorAll('.train-card').forEach(card => {
         card.addEventListener('click', () => {
             const trainId = card.dataset.id;
@@ -169,7 +195,7 @@ function renderCatalog(trains) {
  * @param {Object} train - El objeto de datos del tren.
  */
 function showProductModal(train) {
-    // Mapeo de campos de tu DB
+    // Mapeo de campos de tu DB para el modal
     const name = train.Número || 'N/A';
     const price = train.Precio || 0;
     const stock = train.Sets || 0;
@@ -180,16 +206,14 @@ function showProductModal(train) {
     const marca = train.Marca || 'N/A';
     const pais = train.País || 'N/A';
     const linea = train.Línea || 'N/A';
-    const luzPropia = train['Luz Propia'] ? 'Sí' : 'No';
+    const luzPropia = train['Luz Propia'] === true || train['Luz Propia'] === 'true' ? 'Sí' : 'No';
 
 
     const formattedPrice = formatCurrency(price);
-    const placeholderUrl = `https://placehold.co/600x400/ff5722/000?text=${encodeURIComponent(name)}`;
+    const placeholderUrl = `https://placehold.co/600x400/ff5722/000?text=${encodeURIComponent('N° ' + name)}`;
     const imageUrl = train.imageUrl || placeholderUrl;
     const stockStatusText = stock > 0 ? `¡${stock} unidades en stock!` : 'Agotado';
-    const stockStatusClass = stock > 0 ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 cursor-not-allowed';
 
-    // Contenido del modal
     modalBackdrop.innerHTML = `
         <div class="modal-content auth-card p-6 w-11/12 md:w-2/3 lg:w-1/2">
             <!-- Botón de cierre -->
@@ -270,7 +294,7 @@ function hideProductModal() {
  * Escucha en tiempo real los cambios en la colección 'Trenes'
  * y maneja la lógica de filtrado y renderizado.
  */
-function loadTrainsCatalog() {
+function initializeTrainCatalog() { 
     if (!catalogContainer) return;
     if (catalogLoading) catalogLoading.classList.remove('hidden');
     catalogContainer.innerHTML = ''; 
@@ -278,7 +302,7 @@ function loadTrainsCatalog() {
 
     console.log('Iniciando escucha en tiempo real del catálogo de trenes...');
     
-    // **Ruta Adaptada:** Apuntando a tu colección 'Trenes' dentro del camino público
+    // RUTA CORREGIDA: Apuntando a tu colección 'Trenes' dentro del camino público
     const collectionPath = `artifacts/${appId}/public/data/Trenes`;
 
     // Usamos onSnapshot para mantener la vista actualizada en tiempo real
@@ -286,7 +310,7 @@ function loadTrainsCatalog() {
         if (catalogLoading) catalogLoading.classList.add('hidden');
 
         if (snapshot.empty) {
-            catalogContainer.innerHTML = '<p class="empty-message text-lg text-gray-500">No hay modelos de trenes disponibles en este momento. Asegúrate de que los datos estén en la ruta: ' + collectionPath + '</p>';
+            catalogContainer.innerHTML = '<p class="empty-message text-lg text-gray-500">No hay modelos de trenes disponibles en este momento. Verifica que los datos estén en la ruta: ' + collectionPath + '</p>';
             return;
         }
 
@@ -294,14 +318,13 @@ function loadTrainsCatalog() {
         
         snapshot.docs.forEach(doc => {
             const trainData = doc.data();
-            // Guardamos el documento completo, incluyendo el ID
             allTrains.push({ id: doc.id, ...trainData }); 
         });
 
         // 1. Renderizar los botones de filtro (usando el campo 'Tipo')
         renderFilters(allTrains);
         
-        // 2. Renderizar el catálogo inicial (filtrado por la categoría activa)
+        // 2. Renderizar el catálogo inicial (agrupado por Tipo o filtrado)
         filterAndRenderCatalog();
 
         console.log(`Catálogo actualizado. Se cargaron ${snapshot.size} modelos.`);
@@ -309,9 +332,9 @@ function loadTrainsCatalog() {
     }, error => {
         console.error("Error al escuchar el catálogo de trenes (Verifica las Reglas de Seguridad):", error);
         if (catalogLoading) catalogLoading.classList.add('hidden');
-        catalogContainer.innerHTML = '<p class="error-message">Error al cargar el catálogo. Verifica que las reglas de seguridad de Firestore permitan la lectura.</p>';
+        catalogContainer.innerHTML = '<p class="error-message">Error al cargar el catálogo. Por favor, verifica que las reglas de seguridad de Firestore permitan la lectura pública de la colección "Trenes" en la ruta pública.</p>';
     });
 }
 
 // Exportamos la función para que app/auth.js la pueda llamar.
-window.loadTrainsCatalog = loadTrainsCatalog;
+window.initializeTrainCatalog = initializeTrainCatalog;
