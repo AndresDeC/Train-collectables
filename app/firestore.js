@@ -1,20 +1,16 @@
-import { collection, onSnapshot, query } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+import { collection, onSnapshot, query, where } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
 // --- REFERENCIAS GLOBALES (DOM) ---
 const catalogContainer = document.getElementById('catalog-container');
 const requestsListContainer = document.getElementById('requests-list');
 const productModal = document.getElementById('product-modal-backdrop');
 const productModalContent = document.querySelector('#product-modal-backdrop .modal-content');
-const closeModalButton = document.getElementById('close-product-modal');
-const modalFeedbackContainer = document.getElementById('modal-feedback-message'); 
 
 // ** ID DEL PROYECTO DE FIREBASE OBTENIDO DEL USUARIO **
+// Esta variable ya no se usa para las rutas de colección, pero se mantiene por si se necesita para otros fines
 const YOUR_FIREBASE_PROJECT_ID = 'extension-84b64'; 
-
-// La variable 'appId' obtiene el ID del entorno (si existe) o usa el ID que pegaste
 const appId = typeof __app_id !== 'undefined' ? __app_id : YOUR_FIREBASE_PROJECT_ID;
-window.appId = appId; // Hacemos appId global para que otros scripts (leads) puedan usarlo
-
+window.appId = appId; 
 
 /**
  * Muestra un mensaje temporal dentro del modal.
@@ -22,18 +18,15 @@ window.appId = appId; // Hacemos appId global para que otros scripts (leads) pue
  * @param {string} type - Tipo de mensaje ('success' o 'error').
  */
 window.displayModalMessage = (message, type = 'success') => {
-    // Intentamos usar el contenedor dentro del modal, si existe
     const modalFeedback = document.getElementById('modal-feedback-message');
     if (!modalFeedback) return;
 
     modalFeedback.innerHTML = message;
-    // Limpiar y añadir clases
-    modalFeedback.className = `p-3 mb-4 rounded-lg text-white text-center font-semibold`;
-    modalFeedback.classList.add(type === 'success' ? 'bg-green-600' : (type === 'error' ? 'bg-red-600' : 'bg-gray-500'));
+    modalFeedback.classList.remove('hidden', 'bg-green-600', 'bg-red-600', 'bg-gray-500'); // Limpiar clases de visibilidad y color
+    modalFeedback.classList.add(type === 'success' ? 'bg-green-600' : (type === 'error' ? 'bg-red-600' : 'bg-gray-500'), 'p-3', 'mb-4', 'rounded-lg', 'text-white', 'text-center', 'font-semibold');
     
     setTimeout(() => {
-        modalFeedback.classList.remove('bg-green-600', 'bg-red-600', 'bg-gray-500');
-        modalFeedback.innerHTML = ''; // Limpiar contenido
+        modalFeedback.classList.add('hidden'); // Ocultar después de 4 segundos
     }, 4000);
 };
 
@@ -59,12 +52,12 @@ function groupTrainsByType(trains) {
  * @param {object} train - Datos del tren a mostrar.
  */
 function showProductModal(train) {
-    // 1. Crear el contenido HTML del modal (¡Añadimos el contenedor de mensajes!)
+    // 1. Crear el contenido HTML del modal (Incluyendo el contenedor de mensajes)
     productModalContent.innerHTML = `
         <h2 class="text-3xl font-bold text-gray-800 dark:text-white mb-4">${train.Modelo}</h2>
         <button id="close-modal-x" class="absolute top-3 right-3 text-4xl text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-white">&times;</button>
         
-        <div id="modal-feedback-message" class="p-3 mb-4 rounded-lg text-white text-center font-semibold" style="display: none;"></div>
+        <div id="modal-feedback-message" class="hidden p-3 mb-4 rounded-lg text-white text-center font-semibold"></div>
 
         <div class="md:flex md:space-x-8">
             <div class="md:w-1/2">
@@ -116,8 +109,13 @@ function showProductModal(train) {
         interestButton.textContent = 'Guardando Solicitud...';
         
         // Llama a la función global en leads.js
-        await window.saveProtectedLead(train.id, train.Modelo);
-        
+        // window.saveProtectedLead debe estar definida en leads.js
+        if (window.saveProtectedLead) {
+             await window.saveProtectedLead(train.id, train.Modelo);
+        } else {
+             window.displayModalMessage('Error: No se encontró la función para guardar la solicitud (leads.js).', 'error');
+        }
+       
         // Revertir el estado del botón (la función saveProtectedLead maneja el feedback del usuario)
         setTimeout(() => {
             interestButton.textContent = '¡Estoy Interesado!';
@@ -228,8 +226,8 @@ window.initializeTrainCatalog = async () => {
     }
 
     try {
-        // ** RUTA CORREGIDA a la estructura más simple: artifacts/{appId}/Trenes **
-        const trainsCollectionRef = collection(db, `artifacts/${appId}/Trenes`);
+        // ** RUTA CORREGIDA: SÓLO el nombre de la colección en la raíz **
+        const trainsCollectionRef = collection(db, `Trenes`);
         
         // Usar onSnapshot para obtener los datos en tiempo real
         onSnapshot(trainsCollectionRef, (snapshot) => {
@@ -252,7 +250,7 @@ window.initializeTrainCatalog = async () => {
         }, (error) => {
             // Este bloque se ejecuta si hay un problema de red, permisos o ruta.
             console.error("Error en onSnapshot del catálogo (PERMISOS/RUTA):", error);
-            catalogContainer.innerHTML = `<p class="text-red-500">Error al cargar el catálogo: ${error.message}. Por favor, verifica tu ruta de Firestore y las reglas de seguridad.</p>`;
+            catalogContainer.innerHTML = `<p class="text-red-500">Error al cargar el catálogo: ${error.message}. Por favor, verifica tus reglas de seguridad para la colección 'Trenes'.</p>`;
         });
 
     } catch (error) {
@@ -274,10 +272,8 @@ window.loadProfilePage = (user) => {
     }
 
     try {
-        // ** RUTA CORREGIDA a la estructura más simple: artifacts/{appId}/Solicitudes **
-        // NOTA: Esta ruta asume que las solicitudes NO están anidadas bajo el userId en tu estructura simple.
-        // Si necesitas anidar bajo el usuario, la ruta DEBE ser: `artifacts/${appId}/users/${user.uid}/Solicitudes`
-        const requestsCollectionPath = `artifacts/${appId}/Solicitudes`; // RUTA SIMPLIFICADA
+        // ** RUTA CORREGIDA: Asumiendo que 'Solicitudes' está en la raíz, como 'Trenes' **
+        const requestsCollectionPath = `Solicitudes`; 
         const requestsCollectionRef = collection(db, requestsCollectionPath);
         
         // Consultar solo las solicitudes del usuario actual
