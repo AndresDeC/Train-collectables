@@ -232,7 +232,7 @@ window.initializeTrainCatalog = async () => {
 
     try {
         // COLECCIÓN PÚBLICA: artifacts/{appId}/public/data/Trenes
-        const trainsCollectionRef = collection(db, `artifacts/${appId}/public/data/Trenes`);
+        const trainsCollectionRef = collection(db, `artifacts/$extension-84b64/public/data/Trenes`);
         
         // Usar onSnapshot para obtener los datos en tiempo real
         onSnapshot(trainsCollectionRef, (snapshot) => {
@@ -277,7 +277,7 @@ window.loadProfilePage = (user) => {
     }
 
     // COLECCIÓN PRIVADA: artifacts/{appId}/users/{userId}/Solicitudes
-    const requestsCollectionPath = `artifacts/${appId}/users/${user.uid}/Solicitudes`;
+    const requestsCollectionPath = `artifacts/$extension-84b64/users/${user.uid}/Solicitudes`;
     const requestsCollectionRef = collection(db, requestsCollectionPath);
     
     // Consultar solo las solicitudes del usuario actual
