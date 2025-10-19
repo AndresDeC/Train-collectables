@@ -1,244 +1,280 @@
-// app/auth.js
+import {
+    initializeApp
+} from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+import {
+    browserLocalPersistence,
+    createUserWithEmailAndPassword,
+    getAuth,
+    onAuthStateChanged,
+    setPersistence,
+    signInAnonymously,
+    signInWithCustomToken,
+    signInWithEmailAndPassword,
+    signOut
+} from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+import {
+    getFirestore
+} from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-// Referencias a elementos del DOM
-const loginModalContainer = document.getElementById('login-modal-container');
-const authForm = document.getElementById('auth-form');
-const emailInput = document.getElementById('email-input');
-const passwordInput = document.getElementById('password-input');
-const authSubmitBtn = document.getElementById('auth-submit-btn');
-const authTitle = document.getElementById('auth-title');
-const toggleModeBtn = document.getElementById('toggle-mode-btn');
-const logoutBtn = document.getElementById('logout-btn');
-const googleLoginBtn = document.getElementById('google-login-btn');
-const errorMessage = document.getElementById('error-message');
-const userDisplay = document.getElementById('user-display');
-const profileEmail = document.getElementById('profile-email');
-const profileDate = document.getElementById('profile-date');
-const showLoginBtn = document.getElementById('show-login-btn');
-const closeLoginModalBtn = document.getElementById('close-login-modal');
+// --- REFERENCIAS GLOBALES (DOM) ---
+const loginForm = document.getElementById('login-form');
+const registerForm = document.getElementById('register-form');
+const logoutButton = document.getElementById('logout-button');
+const welcomeMessage = document.getElementById('welcome-message');
 
-// Elementos de Navegación Dinámicos
-const navCatalog = document.getElementById('nav-catalog');
-const navProfile = document.getElementById('nav-profile');
+// Vistas
+const landingPage = document.getElementById('landing-page');
+const exclusiveCatalogPage = document.getElementById('exclusive-catalog-page');
+const profilePage = document.getElementById('profile-page');
+const authContainer = document.getElementById('auth-container'); 
 
+let auth;
+let db;
 
-// Variable de estado: true para Login, false para Registro
-let isLoginMode = true;
-
-/**
- * Muestra un mensaje de error o éxito en el modal de autenticación.
- */
-function displayAuthMessage(msg, isError = true) {
-    errorMessage.textContent = msg;
-    errorMessage.classList.remove('hidden', 'error-msg', 'success-msg');
-    errorMessage.classList.add(isError ? 'error-msg' : 'success-msg');
-}
-
-/**
- * Maneja el cambio de modo entre Iniciar Sesión y Registrarse.
- */
-function toggleAuthMode() {
-    isLoginMode = !isLoginMode;
-    if (isLoginMode) {
-        authTitle.textContent = 'Inicia Sesión para Acceder al Catálogo';
-        authSubmitBtn.textContent = 'Iniciar Sesión';
-        toggleModeBtn.textContent = '¿No tienes cuenta? Regístrate';
-    } else {
-        authTitle.textContent = 'Crea tu Cuenta de Coleccionista';
-        authSubmitBtn.textContent = 'Registrarse';
-        toggleModeBtn.textContent = '¿Ya tienes cuenta? Inicia Sesión';
-    }
-    // Limpia mensajes y campos al cambiar
-    errorMessage.classList.add('hidden');
-    emailInput.value = '';
-    passwordInput.value = '';
-}
+// -------------------------------------------------------------------
+// 1. GESTIÓN DE VISTAS Y ESTADO DE LA UI
+// -------------------------------------------------------------------
 
 /**
- * Muestra/Oculta el modal de Login.
+ * Muestra una vista y oculta las demás.
+ * @param {HTMLElement} pageToShow - La página a mostrar.
  */
-function toggleLoginModal(show = true) {
-    if (show) {
-        // Al abrir, siempre va al modo Login por defecto
-        isLoginMode = true;
-        toggleAuthMode(); 
-        loginModalContainer.classList.remove('hidden');
-    } else {
-        loginModalContainer.classList.add('hidden');
+function showPage(pageToShow) {
+    [landingPage, exclusiveCatalogPage, profilePage, authContainer]
+        .forEach(page => page && page.classList.add('hidden'));
+        
+    if (pageToShow) {
+        pageToShow.classList.remove('hidden');
     }
 }
 
 /**
- * Dibuja la vista correcta y actualiza la clase 'active' de navegación.
- * @param {string} viewId - El ID de la sección a mostrar (ej: 'catalog-view').
+ * Actualiza la interfaz de usuario según el estado de la autenticación.
+ * @param {object} user - El objeto de usuario de Firebase, o null.
  */
-function navigateTo(viewId) {
-    // 1. Ocultar todas las vistas
-    document.querySelectorAll('.view').forEach(view => {
-        view.classList.add('hidden');
-        view.classList.remove('active');
-    });
-
-    // 2. Mostrar la vista solicitada
-    const targetView = document.getElementById(viewId);
-    if (targetView) {
-        targetView.classList.remove('hidden');
-        targetView.classList.add('active');
-    }
-
-    // 3. Actualizar enlaces de navegación
-    document.querySelectorAll('.nav-link').forEach(link => {
-        if (link.getAttribute('data-view') === viewId) {
-            link.classList.add('active');
-        } else {
-            link.classList.remove('active');
-        }
-    });
-}
-
-/**
- * Maneja el estado de la aplicación (logueado vs. deslogueado)
- * @param {firebase.User} user - El objeto de usuario de Firebase.
- */
-function handleUserState(user) {
+function updateUI(user) {
+    const headerLinks = document.getElementById('header-links');
+    
     if (user) {
-        // --- ESTADO LOGUEADO ---
-        console.log('Usuario autenticado:', user.uid);
+        console.log(`[Auth] Usuario autenticado: ${user.uid}`);
         
-        // Ocultar modal si estaba abierto y mostrar controles
-        toggleLoginModal(false); 
-        userDisplay.classList.remove('hidden');
-        logoutBtn.classList.remove('hidden');
-        showLoginBtn.classList.add('hidden');
-        navCatalog.classList.remove('hidden');
-        navProfile.classList.remove('hidden');
+        // 1. Bienvenida y Botones
+        welcomeMessage.textContent = `Hola, ${user.email ? user.email.split('@')[0] : user.uid}`;
+        logoutButton.classList.remove('hidden');
+        headerLinks.classList.remove('hidden'); // Mostrar enlaces de navegación
 
-        // Mostrar nombre de usuario
-        const displayName = user.displayName || user.email.split('@')[0];
-        userDisplay.textContent = `Hola, ${displayName}`;
-
-        // Llenar detalles del perfil
-        profileEmail.textContent = user.email;
-        profileDate.textContent = user.metadata.creationTime ? 
-            new Date(user.metadata.creationTime).toLocaleDateString() : 'N/A';
+        // 2. Mostrar la página inicial del catálogo
+        showPage(exclusiveCatalogPage); 
         
-        // Cargar Catálogo (asume que esta función existe en app/firestore.js)
-        if (typeof loadCatalogAndListen === 'function') {
-            loadCatalogAndListen(); 
+        // 3. Inicializar el catálogo y perfil (funciones de firestore.js)
+        if (window.initializeTrainCatalog) {
+             window.initializeTrainCatalog();
         }
-
-        // Inicializar listeners de Leads (asume que esta función existe en app/leads.js)
-        if (typeof initInterestListeners === 'function') {
-             initInterestListeners(user);
-        }
-
-        // Redirigir al catálogo después del login
-        navigateTo('catalog-view');
-
+        
     } else {
-        // --- ESTADO DESLOGUEADO (Público) ---
-        console.log('Usuario deslogueado. Mostrando Landing Page.');
+        console.log("[Auth] Usuario deslogueado. Mostrando Landing Page.");
         
-        // Ocultar elementos protegidos
-        userDisplay.classList.add('hidden');
-        logoutBtn.classList.add('hidden');
-        showLoginBtn.classList.remove('hidden'); // Mostrar botón de Login
-        navCatalog.classList.add('hidden');
-        navProfile.classList.add('hidden');
+        // 1. Bienvenida y Botones
+        welcomeMessage.textContent = 'Iniciar Sesión';
+        logoutButton.classList.add('hidden');
+        headerLinks.classList.add('hidden'); // Ocultar enlaces de navegación
 
-        // Mostrar la Landing Page y asegurar la navegación
-        navigateTo('landing-view');
+        // 2. Mostrar la página de aterrizaje o el contenedor de autenticación (Login/Registro)
+        showPage(landingPage); 
+    }
+}
 
-        // Inicializar el formulario de interés público
-        if (typeof initPublicInterestForm === 'function') {
-            initPublicInterestForm();
+
+/**
+ * Maneja el cambio de pestañas de navegación para mostrar la página correcta.
+ */
+function handleNavigationClick(event) {
+    if (!auth || !auth.currentUser) return;
+
+    const target = event.target.closest('a');
+    if (!target) return;
+    
+    // Remover clase 'active' de todos los links
+    document.querySelectorAll('.nav-link').forEach(link => link.classList.remove('border-b-4', 'border-red-600'));
+    // Agregar clase 'active' al link clickeado
+    target.classList.add('border-b-4', 'border-red-600');
+
+    const view = target.dataset.view;
+    
+    if (view === 'catalog') {
+        showPage(exclusiveCatalogPage);
+        // Llama a inicializar catálogo por si acaso la data no cargó
+        if (window.initializeTrainCatalog) window.initializeTrainCatalog();
+    } else if (view === 'profile') {
+        showPage(profilePage);
+        // Llama a cargar perfil
+        if (window.loadProfilePage) window.loadProfilePage(auth.currentUser);
+    } else if (view === 'auth') {
+        showPage(authContainer); 
+    }
+}
+
+// -------------------------------------------------------------------
+// 2. LÓGICA DE AUTENTICACIÓN
+// -------------------------------------------------------------------
+
+/**
+ * Intenta iniciar sesión con correo y contraseña.
+ */
+async function loginWithEmailAndPassword(e) {
+    e.preventDefault();
+    const email = document.getElementById('login-email').value;
+    const password = document.getElementById('login-password').value;
+    const feedback = document.getElementById('login-feedback');
+    feedback.textContent = 'Iniciando sesión...';
+    
+    try {
+        await signInWithEmailAndPassword(auth, email, password);
+        // Éxito: onAuthStateChanged manejará el updateUI
+        feedback.textContent = '';
+        showPage(exclusiveCatalogPage); // Muestra inmediatamente el catálogo
+    } catch (error) {
+        console.error("Error de login:", error.code);
+        let msg = "Error al iniciar sesión.";
+        if (error.code === 'auth/invalid-credential') {
+            msg = "Credenciales incorrectas o usuario no encontrado.";
+        } else if (error.code === 'auth/wrong-password') {
+            msg = "Contraseña incorrecta.";
         }
+        feedback.textContent = `Error: ${msg}`;
     }
 }
 
 /**
- * -----------------------------------------------------
- * EVENT LISTENERS GLOBALES
- * -----------------------------------------------------
+ * Intenta registrar un nuevo usuario con correo y contraseña.
  */
-
-// 1. Guardián de Acceso (onAuthStateChanged) - Función principal de control de sesión
-auth.onAuthStateChanged(handleUserState);
-
-// 2. Manejo del formulario (Login/Registro)
-authForm.addEventListener('submit', async (e) => {
+async function registerWithEmailAndPassword(e) {
     e.preventDefault();
-    const email = emailInput.value.trim();
-    const password = passwordInput.value.trim();
+    const email = document.getElementById('register-email').value;
+    const password = document.getElementById('register-password').value;
+    const feedback = document.getElementById('register-feedback');
+    feedback.textContent = 'Registrando...';
+    
+    try {
+        await createUserWithEmailAndPassword(auth, email, password);
+        // Éxito: onAuthStateChanged manejará el updateUI
+        feedback.textContent = '';
+        showPage(exclusiveCatalogPage); // Muestra inmediatamente el catálogo
+    } catch (error) {
+        console.error("Error de registro:", error.code);
+        let msg = "Error al registrar el usuario.";
+        if (error.code === 'auth/email-already-in-use') {
+            msg = "El correo electrónico ya está en uso.";
+        } else if (error.code === 'auth/weak-password') {
+            msg = "La contraseña debe tener al menos 6 caracteres.";
+        }
+        feedback.textContent = `Error: ${msg}`;
+    }
+}
 
-    if (password.length < 6) {
-        displayAuthMessage("La contraseña debe tener al menos 6 caracteres.", true);
+/**
+ * Cierra la sesión del usuario actual.
+ */
+async function logoutUser() {
+    try {
+        await signOut(auth);
+        // Éxito: onAuthStateChanged manejará el updateUI
+    } catch (error) {
+        console.error("Error al cerrar sesión:", error);
+    }
+}
+
+// -------------------------------------------------------------------
+// 3. INICIALIZACIÓN PRINCIPAL
+// -------------------------------------------------------------------
+
+/**
+ * Función principal para inicializar Firebase.
+ */
+window.initializeFirebase = async () => {
+    // 1. Configuración de Firebase
+    const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
+    if (!firebaseConfig) {
+        console.error("FATAL ERROR: __firebase_config no está definido.");
         return;
     }
     
     try {
-        errorMessage.classList.add('hidden'); 
+        const app = initializeApp(firebaseConfig);
+        db = getFirestore(app);
+        auth = getAuth(app);
+        
+        // Hacemos las referencias globales accesibles
+        window.db = db;
+        window.auth = auth;
+        
+        // 2. Configurar persistencia (opcional pero recomendado)
+        await setPersistence(auth, browserLocalPersistence);
 
-        if (isLoginMode) {
-            await auth.signInWithEmailAndPassword(email, password);
+        // 3. Autenticación Inicial (Usar token de seguridad o Anonimato)
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+        if (initialAuthToken) {
+            await signInWithCustomToken(auth, initialAuthToken);
         } else {
-            await auth.createUserWithEmailAndPassword(email, password);
-            // Si el registro es exitoso, Firebase inicia sesión automáticamente y activa handleUserState
+            await signInAnonymously(auth); 
         }
+
+        // 4. Iniciar el Oyente de Estado de Sesión
+        onAuthStateChanged(auth, (user) => {
+            updateUI(user);
+        });
+        
     } catch (error) {
-        console.error("Error de autenticación:", error.code, error.message);
-        // Firebase Auth errores comunes: auth/email-already-in-use, auth/user-not-found, etc.
-        displayAuthMessage(error.message, true);
+        console.error("Error al inicializar Firebase:", error);
+        // Mensaje de error visible en la UI si falla la inicialización
+        document.body.innerHTML = `
+            <div class="p-8 text-center text-red-500">
+                <h1>Error Crítico de Inicialización</h1>
+                <p>No se pudo conectar a Firebase. Por favor, revisa la configuración del proyecto.</p>
+                <p class="text-sm text-gray-400">Detalle: ${error.message}</p>
+            </div>
+        `;
     }
-});
+};
 
-// 3. Botón de Logout
-logoutBtn.addEventListener('click', async () => {
-    try {
-        await auth.signOut();
-    } catch (error) {
-        console.error("Error al cerrar sesión:", error);
+// -------------------------------------------------------------------
+// 4. ASIGNACIÓN DE EVENTOS
+// -------------------------------------------------------------------
+
+window.addEventListener('load', () => {
+    // 1. Inicializa Firebase al cargar la página
+    window.initializeFirebase(); 
+
+    // 2. Botones y Formularios de Auth
+    if (loginForm) loginForm.addEventListener('submit', loginWithEmailAndPassword);
+    if (registerForm) registerForm.addEventListener('submit', registerWithEmailAndPassword);
+    if (logoutButton) logoutButton.addEventListener('click', logoutUser);
+
+    // 3. Navegación
+    const headerNav = document.getElementById('header-nav');
+    if (headerNav) {
+        headerNav.addEventListener('click', handleNavigationClick);
     }
-});
+    
+    // 4. Cambiar entre login y registro en la vista de autenticación
+    const switchToRegister = document.getElementById('switch-to-register');
+    const switchToLogin = document.getElementById('switch-to-login');
+    const loginCard = document.getElementById('login-card');
+    const registerCard = document.getElementById('register-card');
 
-// 4. Botón de cambio de modo (Login <-> Registro)
-toggleModeBtn.addEventListener('click', toggleAuthMode);
-
-// 5. Botón de Login con Google
-googleLoginBtn.addEventListener('click', async () => {
-    const provider = new firebase.auth.GoogleAuthProvider();
-    try {
-        await auth.signInWithPopup(provider);
-    } catch (error) {
-        console.error("Error de Google Auth:", error);
-        displayAuthMessage("Fallo la autenticación con Google. Intenta de nuevo.", true);
+    if (switchToRegister && loginCard && registerCard) {
+        switchToRegister.addEventListener('click', (e) => {
+            e.preventDefault();
+            loginCard.classList.add('hidden');
+            registerCard.classList.remove('hidden');
+        });
     }
-});
 
-// 6. Botones de Modal (Mostrar/Cerrar)
-showLoginBtn.addEventListener('click', () => toggleLoginModal(true));
-closeLoginModalBtn.addEventListener('click', () => toggleLoginModal(false));
-
-// Clic fuera del modal para cerrarlo
-loginModalContainer.addEventListener('click', (e) => {
-    if (e.target === loginModalContainer) {
-        toggleLoginModal(false);
+    if (switchToLogin && loginCard && registerCard) {
+        switchToLogin.addEventListener('click', (e) => {
+            e.preventDefault();
+            registerCard.classList.add('hidden');
+            loginCard.classList.remove('hidden');
+        });
     }
-});
-
-
-/**
- * -----------------------------------------------------
- * EVENT LISTENERS DE NAVEGACIÓN (SPA)
- * -----------------------------------------------------
- */
-document.querySelectorAll('.nav-link').forEach(link => {
-    link.addEventListener('click', (e) => {
-        e.preventDefault();
-        const viewId = e.target.getAttribute('data-view');
-        // Solo navega si la vista existe y la sección no está oculta (para elementos protegidos)
-        if (viewId && !e.target.classList.contains('hidden')) {
-            navigateTo(viewId);
-        }
-    });
 });
