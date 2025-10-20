@@ -71,15 +71,15 @@
 
         /* Asignación de imágenes y tiempos con placeholders funcionales */
         .slide:nth-child(1) { 
-            background-image: url('https://placehold.co/1920x1080/1e293b/94a3b8?text=Tren+Cl%C3%A1sico');
+            background-image: url('/Imagen\ fondo.webp');
             animation-delay: 0s; 
         } 
         .slide:nth-child(2) { 
-            background-image: url('https://placehold.co/1920x1080/475569/cbd5e1?text=Tren+Moderno');
+            background-image: url('Imagen\ fondo 2.webp');
             animation-delay: 5s; 
         } 
         .slide:nth-child(3) { 
-            background-image: url('https://placehold.co/1920x1080/3b82f6/f0f9ff?text=Maqueta');
+            background-image: url('Imagen\ fondo 3.webp');
             animation-delay: 10s; 
         } 
 
@@ -614,46 +614,6 @@
         // Inicializa el icono inmediatamente después de la definición de la función
         updateThemeIcon(); 
 
-
-        // === 6. PUBLIC LEADS FORM HANDLER (AJAX SUBMISSION) ===
-        publicInterestForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            publicFormMessage.classList.add('hidden');
-            
-            const form = e.target;
-            const formData = new FormData(form);
-            
-            // Muestra un mensaje de carga temporal si lo deseas
-            // publicFormMessage.textContent = "Enviando..."; 
-            // publicFormMessage.classList.remove('hidden', 'success-msg');
-            // publicFormMessage.classList.add('bg-blue-300'); // Ejemplo de estilo de carga
-
-            try {
-                // Crucial: Enviamos una petición AJAX a FormSubmit con 'Accept': 'application/json'
-                // para que nos devuelva una respuesta JSON en lugar de redirigir la página.
-                const response = await fetch(form.action, {
-                    method: form.method,
-                    body: formData,
-                    headers: {
-                        'Accept': 'application/json' 
-                    }
-                });
-
-                if (response.ok) {
-                    publicFormMessage.textContent = "¡Gracias por tu interés! Un coleccionista se comunicará contigo pronto.";
-                    publicFormMessage.classList.remove('hidden');
-                    publicFormMessage.classList.add('success-msg');
-                    form.reset();
-                } else {
-                    // Si FormSubmit devuelve un error (ej. límite de envío)
-                    const data = await response.json();
-                    displayError(data.message || "Error al enviar el formulario. Intenta de nuevo más tarde.");
-                }
-            } catch (error) {
-                console.error("Form Submit Error:", error);
-                displayError("Error de red. Por favor, verifica tu conexión.");
-            }
-        });
     </script>
     
 </body>
