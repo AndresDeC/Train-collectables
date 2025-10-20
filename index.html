@@ -15,7 +15,6 @@
             theme: {
                 extend: {
                     colors: {
-                        // Colores personalizados
                         'primary-dark': '#1e293b',
                         'secondary-light': '#94a3b8',
                         'accent-blue': '#3b82f6',
@@ -31,20 +30,19 @@
         body { 
             font-family: 'Inter', sans-serif; 
             min-height: 100vh;
-            /* La transición ahora solo aplica al color de texto */
             transition: color 0.3s; 
-            background-color: transparent; /* El fondo es el carrusel */
+            background-color: transparent; 
             position: relative;
-            z-index: 10; /* Asegura que el contenido esté por encima del overlay */
+            z-index: 10; 
         }
         
         /* Definición de la animación de carrusel */
         @keyframes imageAnimation {
             0% { opacity: 0; animation-timing-function: ease-in; }
-            8% { opacity: 1; animation-timing-function: ease-out; } /* Fade in */
-            33% { opacity: 1; } /* Stay visible */
-            41% { opacity: 0; } /* Fade out */
-            100% { opacity: 0; } /* Keep hidden */
+            8% { opacity: 1; animation-timing-function: ease-out; } 
+            33% { opacity: 1; } 
+            41% { opacity: 0; } 
+            100% { opacity: 0; } 
         }
 
         /* --- CARROUSEL DE FONDO --- */
@@ -54,7 +52,7 @@
             left: 0;
             width: 100%;
             height: 100%;
-            z-index: -2; /* Detrás de todo */
+            z-index: -2; 
         }
 
         /* Imágenes del carrusel (slides) */
@@ -71,19 +69,17 @@
             animation: imageAnimation 15s infinite; 
         }
 
-        /* Asignación de imágenes y tiempos */
+        /* Asignación de imágenes y tiempos con placeholders funcionales */
         .slide:nth-child(1) { 
-            background-image: url('Imagen fondo.webp'); /* Tu imagen de tren */
+            background-image: url('https://placehold.co/1920x1080/1e293b/94a3b8?text=Tren+Cl%C3%A1sico');
             animation-delay: 0s; 
         } 
         .slide:nth-child(2) { 
-            /* Placeholder 1 (Reemplaza esta URL) */
-            background-image: url('Imagen fondo2.webp');
+            background-image: url('https://placehold.co/1920x1080/475569/cbd5e1?text=Tren+Moderno');
             animation-delay: 5s; 
         } 
         .slide:nth-child(3) { 
-            /* Placeholder 2 (Reemplaza esta URL) */
-            background-image: url('Imagen fondo3.webp');
+            background-image: url('https://placehold.co/1920x1080/3b82f6/f0f9ff?text=Maqueta');
             animation-delay: 10s; 
         } 
 
@@ -94,8 +90,7 @@
             left: 0;
             width: 100%;
             height: 100%;
-            z-index: -1; /* Encima del carrusel pero detrás del contenido */
-            /* Gradient oscuro para modo CLARO (sigue el estilo del diseño original) */
+            z-index: -1; 
             background: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.7)); 
             transition: background 0.3s;
         }
@@ -239,14 +234,11 @@
 <body>
 
     <!-- ----------------------------------------------------- -->
-    <!-- NUEVO: CAROUSEL DE FONDO Y OVERLAY -->
+    <!-- CAROUSEL DE FONDO Y OVERLAY -->
     <!-- ----------------------------------------------------- -->
     <div id="background-carousel">
-        <!-- Slide 1: Tu imagen, visible de 0s a 5s -->
         <div class="slide"></div>
-        <!-- Slide 2: Marcador de posición 1, visible de 5s a 10s -->
         <div class="slide"></div>
-        <!-- Slide 3: Marcador de posición 2, visible de 10s a 15s -->
         <div class="slide"></div>
     </div>
     
@@ -254,16 +246,15 @@
     <div id="content-overlay"></div> 
     
     <!-- ----------------------------------------------------- -->
-    <!-- 1. HEADER (SIEMPRE VISIBLE - Botones dinámicos) -->
+    <!-- 1. HEADER (SIEMPRE VISIBLE) -->
     <!-- ----------------------------------------------------- -->
     <header id="app-header">
         <div class="header-content">
             <h1 class="logo">Trenes Store</h1>
             <nav id="app-nav" class="flex space-x-2">
-                <!-- La Landing Page es el Home. -->
                 <a href="#home" class="nav-link active" data-view="landing-view">Inicio</a> 
                 
-                <!-- Links a archivos HTML externos, se hacen visibles al loguear. -->
+                <!-- Links protegidos, visibles solo al loguear -->
                 <a href="catalogo.html" class="nav-link hidden" id="nav-catalog">Catálogo Exclusivo</a>
                 <a href="perfil.html" class="nav-link hidden" id="nav-profile">Mi Perfil</a>
             </nav>
@@ -272,21 +263,21 @@
         <!-- BOTÓN DE TEMA Y CONTROLES DE USUARIO AGRUPADOS -->
         <div class="flex items-center space-x-4">
             
-            <!-- Botón de Alternancia de Tema (Ahora simple y bien integrado en el header) -->
+            <!-- Botón de Alternancia de Tema -->
             <button 
                 id="theme-toggle" 
                 class="p-3 rounded-full text-yellow-500 hover:text-yellow-700 dark:text-indigo-400 dark:hover:text-indigo-600 transition duration-150 bg-gray-100 dark:bg-gray-700 shadow-md"
                 aria-label="Alternar modo oscuro/claro"
             >
                 <svg id="theme-icon" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <!-- Icono inicial (se actualizará con JS) -->
+                    <!-- Icono inicial (Se actualizará con JS, pero este es el default) -->
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path>
                 </svg>
             </button>
 
-            <!-- 🚨 CONTROLES DE USUARIO 🚨 -->
+            <!-- CONTROLES DE USUARIO -->
             <div id="auth-controls" class="user-controls flex items-center space-x-4">
-                <span id="user-display" class="user-welcome hidden text-sm">Hola, Coleccionista</span>
+                <span id="user-display" class="user-welcome hidden text-sm text-gray-200">Hola, Coleccionista</span>
                 <!-- Botón de Login/Registro (Visible si NO está logueado) -->
                 <button id="show-login-btn" class="btn btn-primary">Entrar / Registrarse</button>
                 <!-- Botón de Logout (Visible si SÍ está logueado) -->
@@ -296,7 +287,7 @@
     </header>
 
     <!-- ----------------------------------------------------- -->
-    <!-- 2. CONTENIDO PRINCIPAL (Landing Page Única en index.html) -->
+    <!-- 2. CONTENIDO PRINCIPAL (Landing Page) -->
     <!-- ----------------------------------------------------- -->
     <main id="main-content" class="container">
 
@@ -311,20 +302,20 @@
                     <h3 class="text-2xl mb-3 text-white">¿Interesado en novedades y ofertas?</h3>
                     <p class="mb-4 text-gray-400">Déjanos tu correo y te avisaremos sobre las próximas colecciones.</p>
                     
-                    <!-- 🚨 CONFIGURACIÓN FORMSUBMIT 🚨 -->
+                    <!-- Formulario: Usaremos JS para interceptar el envío y evitar el redirect -->
                     <form 
                         id="public-interest-form" 
                         class="auth-form space-y-3"
                         action="https://formsubmit.co/adc.030328@gmail.com"
                         method="POST"
                     >
-                        <!-- Campo oculto para deshabilitar el captcha (recomendado) -->
+                        <!-- Campo oculto para deshabilitar el captcha -->
                         <input type="hidden" name="_captcha" value="false">
                         
                         <!-- CAMPO DE AUTO-RESPUESTA: Envía un mensaje de agradecimiento al email del cliente -->
                         <input type="hidden" name="_autoresponse" value="¡Gracias por tu interés en Trenes Store! Hemos recibido tu solicitud. Un coleccionista experto se comunicará contigo pronto para compartir nuestro catálogo exclusivo.">
+                        <input type="hidden" name="_subject" value="Nuevo Lead: Interés en Trenes Store">
                         
-                        <!-- Campo Nombre (Importante: tiene atributo name="name") -->
                         <input 
                             type="text" 
                             id="public-name-input" 
@@ -333,7 +324,6 @@
                             required
                         >
                         
-                        <!-- Campo Email (Importante: tiene atributo name="email") -->
                         <input 
                             type="email" 
                             id="public-email-input" 
@@ -342,7 +332,6 @@
                             required
                         >
                         
-                        <!-- CAMPO: TEXTAREA PARA EL MENSAJE -->
                         <textarea 
                             id="public-message-input" 
                             name="message" 
@@ -351,7 +340,6 @@
                             class="p-3 border border-gray-600 rounded-lg bg-gray-700 text-white focus:ring-blue-500 focus:border-blue-500"
                         ></textarea>
 
-
                         <button type="submit" class="btn btn-primary w-full mt-2">¡Me Interesa!</button>
                         <div id="public-form-message" class="success-msg hidden"></div>
                     </form>
@@ -359,16 +347,16 @@
             </div>
         </section>
 
-        <!-- VISTAS PROTEGIDAS ELIMINADAS: Ahora van en catalogo.html y perfil.html -->
-
     </main>
 
-    <!-- 3. MODAL DE LOGIN/REGISTRO -->
+    <!-- ----------------------------------------------------- -->
+    <!-- 3. MODAL DE AUTENTICACIÓN -->
+    <!-- ----------------------------------------------------- -->
     <div id="login-modal-container" class="modal-backdrop hidden">
         <div id="login-modal" class="modal-content auth-card">
             <!-- Botón de cierre -->
             <button class="close-btn absolute top-3 right-3 text-2xl text-gray-400 hover:text-white" id="close-login-modal">&times;</button>
-            <h3 id="auth-title" class="text-2xl font-semibold text-center mb-4 text-white">Inicia Sesión</h3>
+            <h3 id="auth-title" class="text-2xl font-semibold text-center mb-4 text-white">Inicia Sesión o Regístrate</h3>
 
             <div id="error-message" class="error-msg hidden"></div>
 
@@ -376,14 +364,22 @@
                 <input type="email" id="email-input" placeholder="Correo Electrónico" required>
                 <input type="password" id="password-input" placeholder="Contraseña" required>
 
-
-                <button type="submit" id="auth-submit-btn" class="btn btn-primary w-full mt-4">Iniciar Sesión</button>
+                <button type="submit" id="auth-submit-btn" class="btn btn-primary w-full mt-2">Iniciar Sesión</button>
             </form>
 
             <button id="toggle-mode-btn" class="btn btn-link text-center w-full">¿No tienes cuenta? Regístrate</button>
             <p class="separator">O</p>
-            <button id="anonymous-login-btn" class="btn btn-secondary w-full">
-                Entrar como Anónimo
+            <button id="google-login-btn" class="btn btn-google w-full flex items-center justify-center space-x-2">
+                 <!-- Icono de Google (SVG simple) -->
+        <svg xmlns="http://www.w3.org/2000/svg" 
+             viewBox="0 0 48 48" 
+             class="w-16 h-16 transition transform hover:scale-110 duration-300">
+            
+            <!-- Círculo base de la G (con el corte blanco para hacer la C) -->
+            <path fill="#ffff" d="M44.5 20H24v8.5h11.8C34.7 34.5 29.7 38 24 38c-7.7 0-14-6.3-14-14s6.3-14 14-14c3.4 0 6.4 1.2 8.8 3.1l6.4-6.2C34.6 4.6 29.6 2 24 2 12.4 2 3 11.4 3 24s9.4 22 21 22c11.6 0 20.7-9.3 20.7-22 0-1.2-.1-2.4-.3-3.6z"/>
+
+        </svg>
+                <span>Continuar con Google</span>
             </button>
         </div>
     </div>
@@ -391,20 +387,36 @@
     <!-- --------------------------------- -->
     <!-- FIREBASE AND JAVASCRIPT LOGIC -->
     <!-- --------------------------------- -->
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
-    
-    <script>
+    <script type="module">
+        // Importaciones modulares de Firebase (v11.6.1)
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { 
+            getAuth, 
+            signInWithEmailAndPassword, 
+            createUserWithEmailAndPassword, 
+            signOut, 
+            onAuthStateChanged, 
+            GoogleAuthProvider, 
+            signInWithPopup 
+        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        // Nota: Firestore no se necesita en este archivo de landing/auth, por eso se omite.
+        
+        // El appId se define en el entorno de canvas. Si no está, usa un default.
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id'; 
+
         // === 1. FIREBASE INITIALIZATION ===
         const firebaseConfig = {
             apiKey: "AIzaSyB2OQlpj172YorIF2iB_Nvt2JB_W1U-G1A", 
             authDomain: "extension-84b64.firebaseapp.com",
             projectId: "extension-84b64",
         };
-        const app = firebase.initializeApp(firebaseConfig);
-        const auth = firebase.auth();
-        const db = firebase.firestore();
+        // Para usar la configuración del entorno, descomenta la siguiente línea y elimina la anterior:
+        // const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const googleProvider = new GoogleAuthProvider();
+
 
         // === 2. DOM REFERENCES ===
         const modalContainer = document.getElementById('login-modal-container');
@@ -415,13 +427,16 @@
         const authTitle = document.getElementById('auth-title');
         const authSubmitBtn = document.getElementById('auth-submit-btn');
         const toggleModeBtn = document.getElementById('toggle-mode-btn');
-        const anonymousLoginBtn = document.getElementById('anonymous-login-btn');
+        const googleLoginBtn = document.getElementById('google-login-btn'); // Nuevo
         const emailInput = document.getElementById('email-input');
         const passwordInput = document.getElementById('password-input');
         const errorMessage = document.getElementById('error-message');
         const userDisplay = document.getElementById('user-display');
         const navCatalog = document.getElementById('nav-catalog');
         const navProfile = document.getElementById('nav-profile');
+
+        const publicInterestForm = document.getElementById('public-interest-form');
+        const publicFormMessage = document.getElementById('public-form-message');
         
         let isLoginMode = true; // Estado para alternar entre Login y Registro
 
@@ -459,7 +474,7 @@
             }
         });
 
-        /** Maneja el formulario de Login/Registro */
+        /** Maneja el formulario de Login/Registro (Email/Password) */
         authForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             errorMessage.classList.add('hidden');
@@ -470,10 +485,10 @@
             try {
                 if (isLoginMode) {
                     // MODO LOGIN
-                    await auth.signInWithEmailAndPassword(email, password);
+                    await signInWithEmailAndPassword(auth, email, password);
                 } else {
                     // MODO REGISTRO
-                    await auth.createUserWithEmailAndPassword(email, password);
+                    await createUserWithEmailAndPassword(auth, email, password);
                 }
                 modalContainer.classList.add('hidden'); // Cierra el modal al tener éxito
 
@@ -495,29 +510,32 @@
             }
         });
 
-        /** Maneja el login anónimo (Para pruebas de rutas protegidas) */
-        anonymousLoginBtn.addEventListener('click', async () => {
+        /** Maneja el Login con Google */
+        googleLoginBtn.addEventListener('click', async () => {
             try {
-                await auth.signInAnonymously();
+                await signInWithPopup(auth, googleProvider);
                 modalContainer.classList.add('hidden');
             } catch (error) {
-                console.error("Anonymous Auth Error:", error);
-                displayError("No se pudo iniciar sesión anónimamente.");
+                console.error("Google Auth Error:", error);
+                // Si el usuario cierra la ventana emergente, no mostramos un error intrusivo
+                if (error.code !== 'auth/popup-closed-by-user') {
+                    displayError("Error al iniciar sesión con Google.");
+                }
             }
         });
 
         /** Maneja el logout */
         logoutBtn.addEventListener('click', async () => {
             try {
-                await auth.signOut();
+                await signOut(auth);
             } catch (error) {
                 console.error("Error al cerrar sesión:", error);
             }
         });
 
 
-        // === 4. AUTH STATE OBSERVER (El corazón de la dinámica de la app) ===
-        auth.onAuthStateChanged(user => {
+        // === 4. AUTH STATE OBSERVER ===
+        onAuthStateChanged(auth, user => {
             if (user) {
                 // USUARIO LOGUEADO
                 
@@ -533,12 +551,10 @@
                 navProfile.classList.remove('hidden');
 
             } else {
-                // USUARIO DESLOGUEADO (O anónimo cerrado)
-
-                // 1. Ocultar saludo
+                // USUARIO DESLOGUEADO
                 userDisplay.classList.add('hidden');
 
-                // 2. Mostrar/Ocultar botones de navegación y auth
+                // Mostrar/Ocultar botones de navegación y auth
                 showLoginBtn.classList.remove('hidden');
                 logoutBtn.classList.add('hidden');
                 navCatalog.classList.add('hidden');
@@ -548,7 +564,6 @@
         
         // === 5. THEME TOGGLE LOGIC ===
 
-        // Referencias a los elementos del botón
         const themeToggleButton = document.getElementById('theme-toggle');
         const themeIcon = document.getElementById('theme-icon');
 
@@ -575,12 +590,12 @@
         function updateThemeIcon() {
             const isDark = document.documentElement.classList.contains('dark');
             
-            // Si está oscuro (isDark = true), mostramos el SOL para cambiar a claro (Ícono de Sol)
+            // Si está oscuro (isDark = true), mostramos el SOL (para cambiar a Claro)
             if (isDark) {
                 // Sol
                 themeIcon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />`;
                 
-                // Actualiza las clases de color del botón (Moon/Indigo look)
+                // Clases de color para el Sol (Moon/Indigo look)
                 themeToggleButton.classList.remove('text-yellow-500', 'hover:text-yellow-700');
                 themeToggleButton.classList.add('text-indigo-400', 'hover:text-indigo-600');
                 
@@ -588,7 +603,7 @@
                 // Luna (para indicar que el próximo modo es oscuro)
                 themeIcon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />`;
 
-                // Actualiza las clases de color del botón (Sun/Yellow look)
+                // Clases de color para la Luna (Sun/Yellow look)
                 themeToggleButton.classList.remove('text-indigo-400', 'hover:text-indigo-600');
                 themeToggleButton.classList.add('text-yellow-500', 'hover:text-yellow-700');
             }
@@ -596,9 +611,49 @@
         
         // Asigna el listener al botón
         themeToggleButton.addEventListener('click', toggleTheme);
-        // Asegura que el icono se dibuje correctamente al cargar la página
-        window.addEventListener('load', updateThemeIcon);
+        // Inicializa el icono inmediatamente después de la definición de la función
+        updateThemeIcon(); 
 
+
+        // === 6. PUBLIC LEADS FORM HANDLER (AJAX SUBMISSION) ===
+        publicInterestForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            publicFormMessage.classList.add('hidden');
+            
+            const form = e.target;
+            const formData = new FormData(form);
+            
+            // Muestra un mensaje de carga temporal si lo deseas
+            // publicFormMessage.textContent = "Enviando..."; 
+            // publicFormMessage.classList.remove('hidden', 'success-msg');
+            // publicFormMessage.classList.add('bg-blue-300'); // Ejemplo de estilo de carga
+
+            try {
+                // Crucial: Enviamos una petición AJAX a FormSubmit con 'Accept': 'application/json'
+                // para que nos devuelva una respuesta JSON en lugar de redirigir la página.
+                const response = await fetch(form.action, {
+                    method: form.method,
+                    body: formData,
+                    headers: {
+                        'Accept': 'application/json' 
+                    }
+                });
+
+                if (response.ok) {
+                    publicFormMessage.textContent = "¡Gracias por tu interés! Un coleccionista se comunicará contigo pronto.";
+                    publicFormMessage.classList.remove('hidden');
+                    publicFormMessage.classList.add('success-msg');
+                    form.reset();
+                } else {
+                    // Si FormSubmit devuelve un error (ej. límite de envío)
+                    const data = await response.json();
+                    displayError(data.message || "Error al enviar el formulario. Intenta de nuevo más tarde.");
+                }
+            } catch (error) {
+                console.error("Form Submit Error:", error);
+                displayError("Error de red. Por favor, verifica tu conexión.");
+            }
+        });
     </script>
     
 </body>
